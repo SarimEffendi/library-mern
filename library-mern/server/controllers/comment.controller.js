@@ -11,11 +11,18 @@ exports.createComment = asyncHandler(async (req, res) => {
             book: req.params.bookId
         });
         await newComment.save();
-        res.status(201).json({ message: "New Comment Created" });
+
+        // Populate the 'author' and 'book' fields
+        const populatedComment = await Comment.findById(newComment._id)
+            .populate("author", "username")
+            .populate("book", "title");
+
+        res.status(201).json(populatedComment);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 exports.getCommentById = asyncHandler(async (req, res) => {
     try {
@@ -49,7 +56,9 @@ exports.updateCommentById = asyncHandler(async (req, res) => {
 
         if (req.user.role.includes('admin') || comment.author.toString() === req.user._id.toString()) {
             const updateFields = { description };
-            const updatedComment = await Comment.findByIdAndUpdate(req.params.commentId, updateFields, { new: true });
+            const updatedComment = await Comment.findByIdAndUpdate(req.params.commentId, updateFields, { new: true })
+                .populate("author", "username")
+                .populate("book", "title");
             res.json(updatedComment);
         } else {
             res.status(403).json({ error: "Access denied" });
@@ -58,6 +67,7 @@ exports.updateCommentById = asyncHandler(async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 exports.deleteCommentById = asyncHandler(async (req, res) => {
     try {
@@ -83,7 +93,7 @@ exports.getCommentsByBookId = asyncHandler(async (req, res) => {
         const comments = await Comment.find({ book: req.params.bookId })
             .populate("author", "username")
             .populate("book", "title");
-        
+
         if (!comments.length) {
             return res.status(404).json({ message: "No comments found for this book!" });
         }

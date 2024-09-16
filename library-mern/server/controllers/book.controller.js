@@ -24,21 +24,40 @@ exports.createBook = asyncHandler(async (req, res) => {
 
 exports.getAllBooks = asyncHandler(async (req, res) => {
     try {
-        const books = await Book.find().select('title price rentalPrice author').populate("author", "username");
-        res.json(books);
+        const { page = 1, limit = 5 } = req.query; 
+
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+
+        const skip = (pageNum - 1) * limitNum;
+
+        const books = await Book.find()
+            .populate("author", "username")
+            .skip(skip)
+            .limit(limitNum);
+
+        const totalBooks = await Book.countDocuments();
+
+        res.status(200).json({
+            books,            
+            totalBooks,        
+            currentPage: pageNum, 
+            totalPages: Math.ceil(totalBooks / limitNum), 
+        });
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: error.message });
     }
 });
 
+
 exports.getBookById = asyncHandler(async (req, res) => {
     try {
-        const book = await Book.findById(req.params.id).select('title price author').populate("author", "username");
+        const book = await Book.findById(req.params.id).populate("author", "username");
         if (!book) {
             return res.status(404).json({ message: "Book not found" });
         }
-        res.json(book);
+        res.json(book); 
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
