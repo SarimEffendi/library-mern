@@ -1,66 +1,41 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchBooks, addBook, updateBook, deleteBook } from "@/features/books/bookThunks"; // Adjust import path accordingly
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"; // Adjust path if necessary
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function BookManagement() {
-    const [books, setBooks] = useState([
-        {
-            id: 1,
-            title: "The Great Gatsby",
-            author: "F. Scott Fitzgerald",
-            description: "The story of a mysterious millionaire, Jay Gatsby, and his love for the beautiful Daisy Buchanan.",
-            publishedDate: "1925-04-10",
-            price: 12.99,
-            rentalPrice: 3.99,
-            availableForPurchase: true,
-            availableForRental: true,
-        },
-        {
-            id: 2,
-            title: "To Kill a Mockingbird",
-            author: "Harper Lee",
-            description: "A young girl and her brother witness racial injustice in their small town in the 1930s.",
-            publishedDate: "1960-07-11",
-            price: 9.99,
-            rentalPrice: 2.99,
-            availableForPurchase: true,
-            availableForRental: true,
-        },
-        {
-            id: 3,
-            title: "1984",
-            author: "George Orwell",
-            description: "A dystopian novel about a society under totalitarian control and surveillance.",
-            publishedDate: "1949-06-08",
-            price: 8.99,
-            rentalPrice: 2.49,
-            availableForPurchase: true,
-            availableForRental: true,
-        },
-    ])
+    const dispatch = useDispatch();
+    const { items: books, loading, error } = useSelector((state) => state.books); // Get books, loading, error state from Redux
 
     const [showModal, setShowModal] = useState(false);
     const [selectedBook, setSelectedBook] = useState(null);
 
+    // Fetch books on component mount
+    useEffect(() => {
+        dispatch(fetchBooks()); // Dispatch the thunk to fetch books
+    }, [dispatch]);
+
+    // Open modal for editing or adding a new book
     const handleEdit = (book) => {
         setSelectedBook(book);
         setShowModal(true);
     };
 
     const handleDelete = (id) => {
-        setBooks(books.filter((book) => book.id !== id));
+        dispatch(deleteBook(id)); // Dispatch the thunk to delete a book by ID
     };
 
     const handleSubmit = (book) => {
         if (selectedBook) {
-            setBooks(books.map((b) => (b.id === selectedBook.id ? book : b)));
+            dispatch(updateBook(book)); // Dispatch the thunk to update the book
         } else {
-            setBooks([...books, { ...book, id: books.length + 1 }]);
+            dispatch(addBook(book)); // Dispatch the thunk to add a new book
         }
         setShowModal(false);
         setSelectedBook(null);
@@ -77,6 +52,8 @@ export default function BookManagement() {
                         Add Book
                     </Button>
                 </div>
+                {loading && <p>Loading books...</p>}
+                {error && <p className="text-red-500">{error}</p>}
                 <div className="overflow-x-auto">
                     <table className="w-full table-auto">
                         <thead>
@@ -93,11 +70,11 @@ export default function BookManagement() {
                         </thead>
                         <tbody>
                             {books.map((book) => (
-                                <tr key={book.id} className="border-b">
+                                <tr key={book.id || book._id} className="border-b"> {/* Use book.id or book._id */}
                                     <td className="px-4 py-2">{book.title}</td>
-                                    <td className="px-4 py-2">{book.author}</td>
+                                    <td className="px-4 py-2">{book.author.username || "Unknown"}</td> {/* Render the username */}
                                     <td className="px-4 py-2">{book.description}</td>
-                                    <td className="px-4 py-2">{book.publishedDate}</td>
+                                    <td className="px-4 py-2">{new Date(book.publishedDate).toLocaleDateString()}</td>
                                     <td className="px-4 py-2 text-right">${book.price.toFixed(2)}</td>
                                     <td className="px-4 py-2 text-right">${book.rentalPrice.toFixed(2)}</td>
                                     <td className="px-4 py-2 text-center">
@@ -112,7 +89,7 @@ export default function BookManagement() {
                                             <Button variant="outline" size="sm" onClick={() => handleEdit(book)}>
                                                 Edit
                                             </Button>
-                                            <Button variant="outline" size="sm" onClick={() => handleDelete(book.id)}>
+                                            <Button variant="outline" size="sm" onClick={() => handleDelete(book.id || book._id)}>
                                                 Delete
                                             </Button>
                                             <Button variant="outline" size="sm">
@@ -139,6 +116,7 @@ export default function BookManagement() {
                             e.preventDefault();
                             const formData = new FormData(e.target);
                             const book = {
+                                id: selectedBook?.id || selectedBook?._id, // For update
                                 title: formData.get("title"),
                                 author: formData.get("author"),
                                 description: formData.get("description"),
@@ -159,7 +137,7 @@ export default function BookManagement() {
                                 </div>
                                 <div>
                                     <Label htmlFor="author">Author</Label>
-                                    <Input id="author" name="author" defaultValue={selectedBook?.author} required />
+                                    <Input id="author" name="author" defaultValue={selectedBook?.author.username} required />
                                 </div>
                             </div>
                             <div>
@@ -173,7 +151,7 @@ export default function BookManagement() {
                                         id="publishedDate"
                                         name="publishedDate"
                                         type="date"
-                                        defaultValue={selectedBook?.publishedDate}
+                                        defaultValue={selectedBook?.publishedDate?.split('T')[0]}
                                     />
                                 </div>
                                 <div>

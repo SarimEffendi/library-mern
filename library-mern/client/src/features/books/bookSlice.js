@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchBooks, addBook, updateBook, deleteBook } from './bookThunks'; // Import thunks
+import { fetchBooks, addBook, updateBook, deleteBook } from './bookThunks';
 
 const initialState = {
     items: [],
