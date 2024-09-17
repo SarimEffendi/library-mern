@@ -17,9 +17,16 @@ import BookUpload from './components/book/BookUpload';
 import UserProfile from './components/profile/UserProfile';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { CommentsProvider } from './context/CommentsContext';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import process from 'process';
+
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+console.log(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 export default function App() {
   return (
+    <Elements stripe={stripePromise}>
     <Router>
       <Header />
       {/* Wrap the relevant routes with CommentsProvider outside the Routes */}
@@ -49,5 +56,6 @@ export default function App() {
       </CommentsProvider>
       <Footer />
     </Router>
+    </Elements>
   );
 }
