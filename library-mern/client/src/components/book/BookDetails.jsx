@@ -1,14 +1,13 @@
 // src/components/BookDetails.jsx
-
 import React, { useEffect, useState } from 'react';
 import { getBookById } from '@/api/bookApi';
 import { getComments, postComment } from '@/api/commentApi';
+import { createCheckoutSession } from '@/api/paymentApi';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useStripe } from '@stripe/react-stripe-js';
 
 const StarIcon = (props) => (
@@ -84,7 +83,7 @@ const BookDetails = () => {
             const commentData = { description: newComment };
             const postResponse = await postComment(bookId, commentData);
             console.log('Comment posted successfully:', postResponse);
-            setNewComment(''); 
+            setNewComment('');
 
             // Refresh comments after posting a new one
             console.log('Refreshing comments after new comment submission');
@@ -107,32 +106,17 @@ const BookDetails = () => {
 
         setLoading(true);
         try {
-            const token = localStorage.getItem('authToken'); // Replace with your auth token retrieval method
-            console.log('User token retrieved:', token ? 'Available' : 'Not Available');
-
-            // Define the backend URL. Adjust this if your backend is hosted elsewhere.
-            const backendURL = 'http://localhost:3000/api/payment/create-checkout-session';
-            console.log('Sending POST request to backend URL:', backendURL);
-
-            const response = await axios.post(backendURL, {
-                bookId,
-                type,
-            }, {
-                headers: {
-                    Authorization: token ? `Bearer ${token}` : '',
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            console.log('Checkout session created successfully:', response.data);
-            const { url } = response.data;
+            // Initiate the checkout session using the API function
+            const response = await createCheckoutSession(bookId, type);
+            console.log('Checkout session created successfully:', response);
+            const { url } = response;
 
             if (url) {
                 console.log('Redirecting to Stripe Checkout URL:', url);
                 // Redirect to Stripe Checkout
                 window.location.href = url;
             } else {
-                console.error('Stripe Checkout URL not found in response:', response.data);
+                console.error('Stripe Checkout URL not found in response:', response);
                 setError('Failed to initiate payment. Please try again.');
                 setLoading(false);
             }
@@ -161,12 +145,20 @@ const BookDetails = () => {
 
     if (error) {
         console.error('Rendering error state:', error);
-        return <div className="text-red-500">Error: {error}</div>;
+        return (
+            <div className="max-w-4xl mx-auto p-6 sm:p-8 md:p-10 bg-background rounded-lg shadow-lg">
+                <h1 className="text-2xl font-bold mb-4">Error</h1>
+                <p className="text-red-500">Error: {error}</p>
+                <Button className="mt-4" onClick={() => navigate('/')}>
+                    Go to Home
+                </Button>
+            </div>
+        );
     }
 
     if (!book) {
         console.log('Book data not loaded yet. Rendering loading state.');
-        return <div>Loading...</div>;
+        return <div className="max-w-4xl mx-auto p-6 sm:p-8 md:p-10 bg-background rounded-lg shadow-lg">Loading...</div>;
     }
 
     return (
@@ -250,6 +242,7 @@ const BookDetails = () => {
                             placeholder="Write a review..."
                             className="w-full rounded-lg border border-muted p-4"
                             rows={4}
+                            required
                         />
                         <div className="flex justify-end mt-2">
                             <Button type="submit">Submit Review</Button>

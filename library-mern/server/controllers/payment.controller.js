@@ -20,10 +20,10 @@ exports.createCheckoutSession = asyncHandler(async (req, res) => {
     let amount = 0;
     let description = '';
     if (type === 'purchase' && book.availableForPurchase) {
-        amount = book.price * 100; // in cents
+        amount = book.price * 100; 
         description = `Purchase of ${book.title}`;
     } else if (type === 'rental' && book.availableForRental) {
-        amount = book.rentalPrice * 100; // in cents
+        amount = book.rentalPrice * 100; 
         description = `Rental of ${book.title}`;
     } else {
         return res.status(400).json({ message: 'Book not available for this type of transaction' });
@@ -56,7 +56,6 @@ exports.createCheckoutSession = asyncHandler(async (req, res) => {
     res.json({ url: session.url });
 });
 
-// New confirmPayment
 exports.confirmPayment = asyncHandler(async (req, res) => {
     const { sessionId } = req.body;
 
@@ -64,7 +63,6 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'Session ID is required.' });
     }
 
-    // Retrieve the session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== 'paid') {
@@ -73,18 +71,16 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
 
     const { bookId, type, userId } = session.metadata;
 
-    // Check if payment already exists to prevent duplicate processing
     const existingPayment = await Payment.findOne({ stripePaymentId: session.payment_intent });
 
     if (existingPayment) {
         return res.json({ success: true, message: 'Payment already processed.' });
     }
 
-    // Create a Payment record
     const payment = new Payment({
         book: bookId,
         user: userId,
-        amount: session.amount_total / 100, // Convert cents to dollars
+        amount: session.amount_total / 100, 
         stripePaymentId: session.payment_intent,
         status: 'succeeded',
         type: type,
@@ -92,7 +88,6 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
 
     await payment.save();
 
-    // Update Book and User based on the type
     const book = await Book.findById(bookId);
     const user = await User.findById(userId);
 
@@ -110,7 +105,7 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
         });
         await user.save();
     } else if (type === 'rental') {
-        const rentalDuration = 7 * 24 * 60 * 60 * 1000; // 7 days
+        const rentalDuration = 7 * 24 * 60 * 60 * 1000; 
         const rentalEndDate = new Date(Date.now() + rentalDuration);
 
         book.renters.push({

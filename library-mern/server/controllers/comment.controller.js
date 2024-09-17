@@ -12,7 +12,6 @@ exports.createComment = asyncHandler(async (req, res) => {
         });
         await newComment.save();
 
-        // Populate the 'author' and 'book' fields
         const populatedComment = await Comment.findById(newComment._id)
             .populate("author", "username")
             .populate("book", "title");
@@ -105,7 +104,6 @@ exports.getCommentsByBookId = asyncHandler(async (req, res) => {
 });
 
 
-// In comment.controller.js
 
 exports.getCommentsByAuthorId = asyncHandler(async (req, res) => {
     try {

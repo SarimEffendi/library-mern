@@ -1,10 +1,10 @@
 /* eslint-disable no-useless-catch */
-import axiosInstance from '@/api/axiosInstance'; // Import the axios instance with interceptors
+import axiosInstance from '@/api/axiosInstance'; 
 
 // Fetch all users
 export const fetchUsers = async () => {
     try {
-        const response = await axiosInstance.get('/user'); // No need for BASE_URL here
+        const response = await axiosInstance.get('/user'); 
         console.log('Fetched Users:', response.data);
         return response.data;
     } catch (error) {
@@ -15,7 +15,7 @@ export const fetchUsers = async () => {
 // Fetch a user by ID
 export const fetchUserById = async (id) => {
     try {
-        const response = await axiosInstance.get(`/user/${id}`); // No need for BASE_URL here
+        const response = await axiosInstance.get(`/user/${id}`); 
         console.log(`Fetched User ${id}:`, response.data);
         return response.data;
     } catch (error) {
@@ -26,7 +26,7 @@ export const fetchUserById = async (id) => {
 // Create a new user
 export const createUser = async (user) => {
     try {
-        const response = await axiosInstance.post('/user', user); // No need for BASE_URL here
+        const response = await axiosInstance.post('/user', user); 
         console.log('Created User:', response.data);
         return response.data;
     } catch (error) {
@@ -37,7 +37,7 @@ export const createUser = async (user) => {
 // Update a user
 export const updateUser = async (id, user) => {
     try {
-        const response = await axiosInstance.put(`/user/${id}`, user); // No need for BASE_URL here
+        const response = await axiosInstance.put(`/user/${id}`, user);
         console.log(`Updated User ${id}:`, response.data);
         return response.data;
     } catch (error) {
@@ -48,7 +48,7 @@ export const updateUser = async (id, user) => {
 // Delete a user
 export const deleteUser = async (id) => {
     try {
-        const response = await axiosInstance.delete(`/user/${id}`); // No need for BASE_URL here
+        const response = await axiosInstance.delete(`/user/${id}`); 
         console.log(`Deleted User ${id}:`, response.data);
         return response.data;
     } catch (error) {

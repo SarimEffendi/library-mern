@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import axios from 'axios';
+import { confirmPayment } from '@/api/paymentApi'; // Adjust the path as necessary
 
 const Success = () => {
     const location = useLocation();
@@ -15,38 +15,42 @@ const Success = () => {
         const sessionId = query.get('session_id');
 
         if (sessionId) {
-            // Call backend to confirm payment and update database
-            const confirmPayment = async () => {
+            const processPayment = async () => {
                 try {
-                    const token = localStorage.getItem('authToken'); // Replace with your auth token retrieval method
-                    const response = await axios.post('http://localhost:3000/api/payment/confirm-payment', {
-                        sessionId,
-                    }, {
-                        headers: {
-                            Authorization: token ? `Bearer ${token}` : '',
-                            'Content-Type': 'application/json',
-                        },
-                    });
+                    const data = await confirmPayment(sessionId);
 
-                    if (response.data.success) {
+                    if (data.success) {
                         setMessage('Payment successful! Thank you for your purchase.');
                     } else {
                         setError('Payment confirmation failed. Please contact support.');
                     }
                 } catch (err) {
-                    console.error('Error confirming payment:', err);
-                    setError('An error occurred while confirming your payment.');
+                    // The error message is handled by axios interceptors and confirmPayment
+                    if (err.message === 'Token expired') {
+                        setError('Your session has expired. Please log in again.');
+                        navigate('/login');
+                    } else {
+                        setError('An error occurred while confirming your payment.');
+                    }
                 }
             };
 
-            confirmPayment();
+            processPayment();
         } else {
             setError('No session ID found.');
         }
-    }, [location]);
+    }, [location, navigate]);
 
     if (error) {
-        return <div className="text-red-500">Error: {error}</div>;
+        return (
+            <div className="max-w-md mx-auto p-6 bg-background rounded-lg shadow-lg">
+                <h1 className="text-2xl font-bold mb-4">Error</h1>
+                <p className="text-red-500">Error: {error}</p>
+                <Button className="mt-4" onClick={() => navigate('/')}>
+                    Go to Home
+                </Button>
+            </div>
+        );
     }
 
     return (

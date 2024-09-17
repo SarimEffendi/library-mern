@@ -46,7 +46,7 @@ export default function App() {
 
           {/* Book routes */}
           <Route path="/book/:bookId" element={<ProtectedRoute element={BookDetails} />} />
-          <Route path="/book-management" element={<ProtectedRoute element={BookManagement} roles={['admin']} />} />
+          <Route path="/book-management" element={<ProtectedRoute element={BookManagement} roles={['admin','author']} />} />
           <Route path="/book-search" element={<ProtectedRoute element={BookSearch} />} />
           <Route path="/book-upload" element={<ProtectedRoute element={BookUpload} roles={['author', 'admin']} />} />
 

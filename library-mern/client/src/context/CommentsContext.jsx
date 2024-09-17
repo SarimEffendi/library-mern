@@ -13,7 +13,6 @@ export const CommentsProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Fetch all comments on mount
     useEffect(() => {
         loadComments();
     }, []);

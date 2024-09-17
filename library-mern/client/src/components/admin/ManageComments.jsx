@@ -14,7 +14,7 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
-import useComments from "@/hooks/useComments"; // Import the custom hook
+import useComments from "@/hooks/useComments"; 
 
 export default function ManageComments() {
     const {
@@ -68,25 +68,22 @@ export default function ManageComments() {
         console.log("Saving comment. Editing comment:", editingComment);
 
         if (editingComment) {
-            // Edit existing comment
             console.log("Editing existing comment with ID:", editingComment);
             await editComment(editingComment, {
                 description: newComment.description,
             });
 
-            // Update the local state with the edited comment
             const updatedComments = comments.map((comment) =>
                 comment._id === editingComment ? { ...comment, description: newComment.description } : comment
             );
             setComments(updatedComments);
         } else {
-            // Add new comment
             console.log("Adding new comment:", newComment);
             const addedComment = await addComment(newComment);
             setComments([...comments, addedComment]);
         }
 
-        // After saving, reset the state and close the dialog
+        
         setIsDialogOpen(false);
         setEditingComment(null);
         setNewComment({
@@ -102,10 +99,9 @@ export default function ManageComments() {
         setComments(comments.filter((comment) => comment._id !== id));
     };
 
-    // Only fetch comments on component mount, not on every render
     useEffect(() => {
-        reloadComments(); // Ensure the latest comments are always fetched
-    }, []); // Empty dependency array ensures it only runs once on mount
+        reloadComments(); 
+    }, []);
 
     if (loading) return <div>Loading comments...</div>;
     if (error) return <div>Error: {error}</div>;

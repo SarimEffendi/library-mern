@@ -164,7 +164,6 @@ exports.getBookContent = asyncHandler(async (req, res) => {
 
 exports.getOwnedBooks = asyncHandler(async (req, res) => {
     try {
-        // Find the user by their ID and populate the ownedBooks and rentedBooks
         const user = await User.findById(req.user._id)
             .populate('ownedBooks.book', 'title price author description publishedDate availableForPurchase availableForRental')
             .populate('rentedBooks.book', 'title price rentalPrice author description publishedDate availableForPurchase availableForRental');
@@ -173,12 +172,10 @@ exports.getOwnedBooks = asyncHandler(async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Check if the user has purchased or rented any books
         if ((!user.ownedBooks || user.ownedBooks.length === 0) && (!user.rentedBooks || user.rentedBooks.length === 0)) {
             return res.status(404).json({ message: 'No purchased or rented books found for this user' });
         }
 
-        // Format the response to return both purchased and rented books with their details
         const purchasedBooks = user.ownedBooks.map((entry) => ({
             bookId: entry.book._id,
             title: entry.book.title,

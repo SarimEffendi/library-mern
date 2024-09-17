@@ -1,13 +1,8 @@
 // src/features/books/bookThunks.js
 
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import axiosInstance from "../../api/axiosInstance"; // Use Axios instance
+import axiosInstance from "../../api/axiosInstance"; 
 
-/**
- * Thunks for Book CRUD Operations and Custom Routes
- */
-
-// Get all books with pagination
 export const fetchBooks = createAsyncThunk(
     "books/fetchBooks",
     async ({ page, limit }, { rejectWithValue }) => {
@@ -22,7 +17,6 @@ export const fetchBooks = createAsyncThunk(
     }
 );
 
-// Get a specific book by ID
 export const fetchBookById = createAsyncThunk(
     "books/fetchBookById",
     async (id, { rejectWithValue }) => {
@@ -37,7 +31,6 @@ export const fetchBookById = createAsyncThunk(
     }
 );
 
-// Get books by a specific author
 export const fetchBooksByAuthor = createAsyncThunk(
     "books/fetchBooksByAuthor",
     async (authorId, { rejectWithValue }) => {
@@ -52,7 +45,6 @@ export const fetchBooksByAuthor = createAsyncThunk(
     }
 );
 
-// Add a new book (for authors and admins)
 export const addBook = createAsyncThunk(
     "books/addBook",
     async (book, { rejectWithValue }) => {
@@ -65,7 +57,6 @@ export const addBook = createAsyncThunk(
     }
 );
 
-// Update a book by ID
 export const updateBook = createAsyncThunk(
     "books/updateBook",
     async (book, { rejectWithValue }) => {
@@ -78,20 +69,18 @@ export const updateBook = createAsyncThunk(
     }
 );
 
-// Delete a book by ID
 export const deleteBook = createAsyncThunk(
     "books/deleteBook",
     async (id, { rejectWithValue }) => {
         try {
             await axiosInstance.delete(`/book/${id}`);
-            return id; // Return the deleted book's ID
+            return id; 
         } catch (error) {
             return rejectWithValue(error.response?.data || "Error deleting book");
         }
     }
 );
 
-// Fetch owned books (user's purchased and rented books)
 export const fetchOwnedBooks = createAsyncThunk(
     "books/fetchOwnedBooks",
     async (_, { rejectWithValue }) => {
@@ -106,7 +95,6 @@ export const fetchOwnedBooks = createAsyncThunk(
     }
 );
 
-// Fetch purchased book content (requires payment verification)
 export const fetchPurchasedBookContent = createAsyncThunk(
     "books/fetchPurchasedBookContent",
     async (data, { rejectWithValue }) => {
@@ -121,7 +109,6 @@ export const fetchPurchasedBookContent = createAsyncThunk(
     }
 );
 
-// Fetch rented book content (requires payment verification)
 export const fetchRentedBookContent = createAsyncThunk(
     "books/fetchRentedBookContent",
     async (data, { rejectWithValue }) => {

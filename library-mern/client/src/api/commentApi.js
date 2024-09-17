@@ -1,10 +1,10 @@
-import axiosInstance from '@/api/axiosInstance'; // Import the axios instance with baseURL and interceptors
+import axiosInstance from '@/api/axiosInstance'; 
 
 // Fetch all comments
 export const getAllComments = async () => {
     try {
         console.log("Fetching all comments...");
-        const response = await axiosInstance.get('/comment'); // No need for BASE_URL or headers
+        const response = await axiosInstance.get('/comment'); 
         console.log("All comments fetched successfully:", response.data);
         return response.data;
     } catch (error) {
@@ -12,10 +12,6 @@ export const getAllComments = async () => {
         throw error;
     }
 };
-
-// Fetch comments for a specific book
-// Fetch comments for a specific book
-// Fetch comments for a specific book
 export const getComments = async (bookId) => {
     if (!bookId) {
         console.error('bookId is undefined or null');
@@ -58,7 +54,7 @@ export const updateExistingComment = async (commentId, updatedFields) => {
     }
     try {
         console.log(`Updating comment ID: ${commentId} with fields:`, updatedFields);
-        const response = await axiosInstance.put(`/comment/${commentId}`, updatedFields); // No need for BASE_URL or headers
+        const response = await axiosInstance.put(`/comment/${commentId}`, updatedFields); 
         console.log("Comment updated successfully:", response.data);
         return response.data;
     } catch (error) {
@@ -75,7 +71,7 @@ export const deleteExistingComment = async (commentId) => {
     }
     try {
         console.log(`Deleting comment ID: ${commentId}`);
-        const response = await axiosInstance.delete(`/comment/${commentId}`); // No need for BASE_URL or headers
+        const response = await axiosInstance.delete(`/comment/${commentId}`); 
         console.log(`Comment ID ${commentId} deleted successfully.`);
         return response.data;
     } catch (error) {

@@ -14,21 +14,20 @@ import {
 
 export default function BookSearch() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [books, setBooks] = useState([]); // List of books for the current page
-    const [currentPage, setCurrentPage] = useState(1); // Tracks the current page
-    const [totalPages, setTotalPages] = useState(1); // Total number of pages
-    const itemsPerPage = 5; // Set the items per page as per backend config
+    const [books, setBooks] = useState([]); 
+    const [currentPage, setCurrentPage] = useState(1); 
+    const [totalPages, setTotalPages] = useState(1); 
+    const itemsPerPage = 5; 
 
-    // Fetch books whenever currentPage or searchTerm changes
     useEffect(() => {
         const fetchBooks = async () => {
             try {
-                const fetchedData = await getAllBooks(currentPage, itemsPerPage, searchTerm); // Pass page and limit
+                const fetchedData = await getAllBooks(currentPage, itemsPerPage, searchTerm); 
                 console.log("Fetched Data: ", fetchedData);
 
                 if (fetchedData.books) {
-                    setBooks(fetchedData.books); // Set books for the current page
-                    setTotalPages(fetchedData.totalPages); // Set total pages from the response
+                    setBooks(fetchedData.books); 
+                    setTotalPages(fetchedData.totalPages); 
                 } else {
                     console.error("Error: Fetched data does not contain valid 'books' array");
                     setBooks([]);
@@ -39,16 +38,14 @@ export default function BookSearch() {
             }
         };
 
-        fetchBooks(); // Call the function to fetch books
-    }, [currentPage, searchTerm]); // Dependency array ensures fetching when page or search term changes
+        fetchBooks(); 
+    }, [currentPage, searchTerm]); 
 
-    // Handle page change
     const handlePageChange = (page) => {
         setCurrentPage(page);
-        window.scrollTo({ top: 0, behavior: "smooth" }); // Optional: Scroll to top on page change
+        window.scrollTo({ top: 0, behavior: "smooth" }); 
     };
 
-    // Generate pagination items
     const paginationItems = [];
     for (let page = 1; page <= totalPages; page++) {
         paginationItems.push(

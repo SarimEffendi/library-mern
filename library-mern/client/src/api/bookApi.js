@@ -1,11 +1,11 @@
-import axiosInstance from '@/api/axiosInstance'; // Use axios instance with baseURL and interceptors
+import axiosInstance from '@/api/axiosInstance';
 
 export const createBook = async (bookData) => {
     if (!bookData || typeof bookData !== 'object') {
         throw new Error('Invalid book data');
     }
     try {
-        const response = await axiosInstance.post('/book', bookData); // No need for BASE_URL
+        const response = await axiosInstance.post('/book', bookData);
         return response.data;
     } catch (error) {
         console.error('Error creating book:', error.response?.data || error.message);
@@ -35,7 +35,7 @@ export const getBookById = async (bookId) => {
         throw new Error('Invalid bookId');
     }
     try {
-        const response = await axiosInstance.get(`/book/${bookId}`); // No need for BASE_URL
+        const response = await axiosInstance.get(`/book/${bookId}`); 
         return response.data;
     } catch (error) {
         console.error('Error fetching book details:', error.response?.data || error.message);
@@ -50,7 +50,7 @@ export const getBooksByAuthor = async (authorId) => {
         throw new Error('Invalid authorId');
     }
     try {
-        const response = await axiosInstance.get(`/book/author/${authorId}`); // No need for BASE_URL
+        const response = await axiosInstance.get(`/book/author/${authorId}`); 
         return response.data;
     } catch (error) {
         console.error('Error fetching books by author:', error.response?.data || error.message);
@@ -64,7 +64,7 @@ export const updateBookById = async (bookId, bookData) => {
         throw new Error('Invalid parameters');
     }
     try {
-        const response = await axiosInstance.put(`/book/${bookId}`, bookData); // No need for BASE_URL
+        const response = await axiosInstance.put(`/book/${bookId}`, bookData);
         return response.data;
     } catch (error) {
         console.error('Error updating book:', error.response?.data || error.message);
@@ -78,7 +78,7 @@ export const deleteBook = async (bookId) => {
         throw new Error('Invalid bookId');
     }
     try {
-        const response = await axiosInstance.delete(`/book/${bookId}`); // No need for BASE_URL
+        const response = await axiosInstance.delete(`/book/${bookId}`); 
         return response.data;
     } catch (error) {
         console.error('Error deleting book:', error.response?.data || error.message);
@@ -92,7 +92,7 @@ export const getBookContent = async (bookId, paymentId) => {
         throw new Error('Book ID and Payment ID are required');
     }
     try {
-        const response = await axiosInstance.post('/book/access/purchased', { bookId, paymentId }); // No need for BASE_URL
+        const response = await axiosInstance.post('/book/access/purchased', { bookId, paymentId });
         return response.data;
     } catch (error) {
         console.error('Error fetching book content:', error.response?.data || error.message);
@@ -106,7 +106,7 @@ export const getRentedBookContent = async (bookId, paymentId) => {
         throw new Error('Book ID and Payment ID are required');
     }
     try {
-        const response = await axiosInstance.post('/book/access/rented', { bookId, paymentId }); // No need for BASE_URL
+        const response = await axiosInstance.post('/book/access/rented', { bookId, paymentId });
         return response.data;
     } catch (error) {
         console.error('Error fetching rented book content:', error.response?.data || error.message);
@@ -116,7 +116,7 @@ export const getRentedBookContent = async (bookId, paymentId) => {
 
 export const getOwnedBooks = async () => {
     try {
-        const response = await axiosInstance.get('/book/owned-books'); // No need for BASE_URL
+        const response = await axiosInstance.get('/book/owned-books'); 
         return response.data;
     } catch (error) {
         console.error('Error fetching owned books:', error.response?.data || error.message);
@@ -126,7 +126,7 @@ export const getOwnedBooks = async () => {
 
 export const uploadBook = async (bookData) => {
     try {
-        const response = await axiosInstance.post('/book', bookData); // No need for manual headers, axiosInstance handles it
+        const response = await axiosInstance.post('/book', bookData);
         return response.data;
     } catch (error) {
         console.error('Error uploading book:', error);

@@ -7,7 +7,7 @@ import {
     addBook,
     updateBook,
     deleteBook,
-} from "@/features/books/bookThunks"; // Adjust import path accordingly
+} from "@/features/books/bookThunks"; 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -43,16 +43,14 @@ import {
 export default function BookManagement() {
     const dispatch = useDispatch();
 
-    // Access the updated Redux state structure
     const { items: books = [], totalBooks, currentPage, totalPages, loading, error } = useSelector(
         (state) => state.books
     );
 
     const [showModal, setShowModal] = useState(false);
     const [selectedBook, setSelectedBook] = useState(null);
-    const booksPerPage = 5; // Only 5 books per page
+    const booksPerPage = 5; 
 
-    // Fetch books on component mount or when page changes
     useEffect(() => {
         dispatch(fetchBooks({ page: currentPage, limit: booksPerPage }))
             .unwrap()
@@ -64,7 +62,6 @@ export default function BookManagement() {
             });
     }, [dispatch, currentPage]);
 
-    // Open modal for editing or adding a new book
     const handleEdit = (book) => {
         setSelectedBook(book);
         setShowModal(true);
@@ -85,7 +82,7 @@ export default function BookManagement() {
     };
 
     const handlePageChange = (pageNumber) => {
-        setSelectedBook(null); // Optional: Reset selected book when changing pages
+        setSelectedBook(null); 
         dispatch(fetchBooks({ page: pageNumber, limit: booksPerPage }))
             .unwrap()
             .then((res) => {
@@ -110,7 +107,6 @@ export default function BookManagement() {
                 {loading && <p>Loading books...</p>}
                 {error && <p className="text-red-500">{error}</p>}
                 <div className="overflow-x-auto">
-                    {/* Conditional Rendering of the Table */}
                     {Array.isArray(books) && books.length > 0 ? (
                         <Table className="w-full">
                             <TableHeader>
@@ -175,7 +171,6 @@ export default function BookManagement() {
                     )}
                 </div>
 
-                {/* Pagination Section */}
                 <div className="mt-4 flex justify-center">
                     <Pagination>
                         <PaginationContent>
@@ -219,7 +214,6 @@ export default function BookManagement() {
                     </Pagination>
                 </div>
             </main>
-            {/* Modal Dialog for Add/Edit Book */}
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-auto">
                     <DialogHeader>
@@ -235,7 +229,7 @@ export default function BookManagement() {
                             e.preventDefault();
                             const formData = new FormData(e.target);
                             const book = {
-                                id: selectedBook?.id || selectedBook?._id, // For update
+                                id: selectedBook?.id || selectedBook?._id, 
                                 title: formData.get("title"),
                                 author: formData.get("author"),
                                 description: formData.get("description"),

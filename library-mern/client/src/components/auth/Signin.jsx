@@ -58,7 +58,7 @@ export default function Signin() {
             console.log('User roles stored:', response.data.roles);
             window.dispatchEvent(new Event('authChange'));
 
-            navigate('/', { replace: true }); // Ensure the page redirects after login
+            navigate('/', { replace: true }); 
         } catch (error) {
             console.error('Error during login:', error);
             if (error.response && error.response.data) {
