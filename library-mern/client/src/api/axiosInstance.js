@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { BASE_URL } from '@/utils/constants';
-import { jwtDecode } from 'jwt-decode';
-// import { useNavigate } from 'react-router-dom';
+import {jwtDecode} from 'jwt-decode'; // Correct import
 
+let isRedirecting = false; // This flag can be removed if not using redirects
 
 const isTokenExpired = (token) => {
     try {
@@ -13,20 +13,21 @@ const isTokenExpired = (token) => {
     }
 };
 
-
 const axiosInstance = axios.create({
     baseURL: BASE_URL,
 });
 
-
+// Request Interceptor
 axiosInstance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('authToken');
         if (token) {
             if (isTokenExpired(token)) {
-
                 localStorage.removeItem('authToken');
-                window.location.href = '/login';
+
+                // Remove redirect logic
+                // Optionally, you can dispatch an event or call a callback here
+
                 return Promise.reject(new Error('Token expired'));
             }
             config.headers['Authorization'] = `Bearer ${token}`;
@@ -38,14 +39,15 @@ axiosInstance.interceptors.request.use(
     }
 );
 
-
+// Response Interceptor
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-
             localStorage.removeItem('authToken');
-            window.location.href = '/login';
+
+            // Remove redirect logic
+            // Optionally, you can dispatch an event or call a callback here
         }
         return Promise.reject(error);
     }

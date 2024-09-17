@@ -22,7 +22,7 @@ export default function Signin() {
                 console.error('Failed to decode token:', error);
             }
         }
-    }, [navigate]);
+    },[]);
 
     const validateInputs = () => {
         const validationErrors = {};

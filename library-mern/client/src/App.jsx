@@ -19,10 +19,11 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import { CommentsProvider } from './context/CommentsContext';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import process from 'process';
+import Cancel from './pages/payment/Cancel';
+import Success from './pages/payment/Success';
 
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
-console.log(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = loadStripe("pk_test_51PvfVkKwq8I6LPxO5MOQxZniyTx4gsrFnDnhEpol3y8y6QKpgEau5xXJv3Fzr9zwLHIJ5qdlRMc2mgJPOhhY3azY00XmobLXpy")
+// console.log(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 export default function App() {
   return (
@@ -48,6 +49,10 @@ export default function App() {
           <Route path="/book-management" element={<ProtectedRoute element={BookManagement} roles={['admin']} />} />
           <Route path="/book-search" element={<ProtectedRoute element={BookSearch} />} />
           <Route path="/book-upload" element={<ProtectedRoute element={BookUpload} roles={['author', 'admin']} />} />
+
+          {/* Payment routes */}
+          <Route path="/payment/success" element={<ProtectedRoute element={Success}/>} />
+          <Route path="/payment/cancel" element={<ProtectedRoute element={Cancel}/>} />
 
           {/* Profile and others */}
           <Route path="/profile" element={<ProtectedRoute element={UserProfile} />} />

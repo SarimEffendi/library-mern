@@ -1,3 +1,5 @@
+// src/components/BookDetails.jsx
+
 import React, { useEffect, useState } from 'react';
 import { getBookById } from '@/api/bookApi';
 import { getComments, postComment } from '@/api/commentApi';
@@ -5,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useStripe } from '@stripe/react-stripe-js';
 
 const StarIcon = (props) => (
     <svg
@@ -26,20 +30,30 @@ const StarIcon = (props) => (
 
 const BookDetails = () => {
     const { bookId } = useParams();
+    const navigate = useNavigate();
+    const stripe = useStripe();
+
     const [book, setBook] = useState(null);
     const [newComment, setNewComment] = useState('');
     const [comments, setComments] = useState([]);
     const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        console.log('BookDetails Component Mounted');
+        console.log('Extracted bookId from URL:', bookId);
+
         if (!bookId) {
+            console.error('No book ID provided');
             setError('No book ID provided');
             return;
         }
 
         const fetchBookDetails = async () => {
+            console.log(`Fetching details for bookId: ${bookId}`);
             try {
                 const bookResponse = await getBookById(bookId);
+                console.log('Book details fetched successfully:', bookResponse);
                 setBook(bookResponse);
             } catch (err) {
                 console.error('Error fetching book details:', err);
@@ -48,8 +62,10 @@ const BookDetails = () => {
         };
 
         const fetchBookComments = async () => {
+            console.log(`Fetching comments for bookId: ${bookId}`);
             try {
                 const commentsResponse = await getComments(bookId);
+                console.log('Comments fetched successfully:', commentsResponse);
                 setComments(commentsResponse);
             } catch (err) {
                 console.error('Error fetching comments:', err);
@@ -63,21 +79,95 @@ const BookDetails = () => {
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
+        console.log('Submitting new comment:', newComment);
         try {
             const commentData = { description: newComment };
-            await postComment(bookId, commentData);
+            const postResponse = await postComment(bookId, commentData);
+            console.log('Comment posted successfully:', postResponse);
             setNewComment(''); 
-            
+
             // Refresh comments after posting a new one
+            console.log('Refreshing comments after new comment submission');
             const updatedComments = await getComments(bookId);
+            console.log('Updated comments fetched:', updatedComments);
             setComments(updatedComments);
         } catch (err) {
+            console.error('Error posting comment:', err);
             setError('Error posting comment');
         }
     };
 
-    if (error) return <div>Error: {error}</div>;
-    if (!book) return <div>Loading...</div>;
+    const handlePayment = async (type) => {
+        console.log(`Initiating payment of type: ${type} for bookId: ${bookId}`);
+        if (!stripe) {
+            console.error('Stripe has not loaded yet.');
+            setError('Stripe has not loaded yet. Please try again later.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('authToken'); // Replace with your auth token retrieval method
+            console.log('User token retrieved:', token ? 'Available' : 'Not Available');
+
+            // Define the backend URL. Adjust this if your backend is hosted elsewhere.
+            const backendURL = 'http://localhost:3000/api/payment/create-checkout-session';
+            console.log('Sending POST request to backend URL:', backendURL);
+
+            const response = await axios.post(backendURL, {
+                bookId,
+                type,
+            }, {
+                headers: {
+                    Authorization: token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            console.log('Checkout session created successfully:', response.data);
+            const { url } = response.data;
+
+            if (url) {
+                console.log('Redirecting to Stripe Checkout URL:', url);
+                // Redirect to Stripe Checkout
+                window.location.href = url;
+            } else {
+                console.error('Stripe Checkout URL not found in response:', response.data);
+                setError('Failed to initiate payment. Please try again.');
+                setLoading(false);
+            }
+        } catch (err) {
+            if (err.response) {
+                // Server responded with a status other than 2xx
+                console.error('Error response from server:', err.response);
+                setError(`Payment initiation failed: ${err.response.data.message || 'Unknown error'}`);
+            } else if (err.request) {
+                // Request was made but no response received
+                console.error('No response received from server:', err.request);
+                setError('No response from server. Please try again later.');
+            } else {
+                // Something else caused the error
+                console.error('Error creating checkout session:', err.message);
+                setError('Failed to initiate payment. Please try again.');
+            }
+            setLoading(false);
+        }
+    };
+
+    // Log the current state whenever it changes (optional, can be verbose)
+    useEffect(() => {
+        console.log('Current State:', { book, comments, error, loading });
+    }, [book, comments, error, loading]);
+
+    if (error) {
+        console.error('Rendering error state:', error);
+        return <div className="text-red-500">Error: {error}</div>;
+    }
+
+    if (!book) {
+        console.log('Book data not loaded yet. Rendering loading state.');
+        return <div>Loading...</div>;
+    }
 
     return (
         <div className="max-w-4xl mx-auto p-6 sm:p-8 md:p-10 bg-background rounded-lg shadow-lg">
@@ -90,6 +180,8 @@ const BookDetails = () => {
                         height={600}
                         className="rounded-lg w-full h-auto object-cover"
                         style={{ aspectRatio: "400/600", objectFit: "cover" }}
+                        onLoad={() => console.log('Book cover image loaded successfully')}
+                        onError={() => console.error('Error loading book cover image')}
                     />
                 </div>
                 <div className="grid gap-6">
@@ -111,8 +203,12 @@ const BookDetails = () => {
                         </div>
                     </div>
                     <div className="flex gap-4">
-                        <Button size="lg">Buy</Button>
-                        <Button variant="outline" size="lg">Rent</Button>
+                        <Button size="lg" onClick={() => handlePayment('purchase')} disabled={loading}>
+                            {loading ? 'Processing...' : 'Buy'}
+                        </Button>
+                        <Button variant="outline" size="lg" onClick={() => handlePayment('rental')} disabled={loading}>
+                            {loading ? 'Processing...' : 'Rent'}
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -122,25 +218,29 @@ const BookDetails = () => {
                     <h2 className="text-2xl font-bold">Reviews</h2>
                 </div>
                 <div className="grid gap-4">
-                    {comments.map(comment => (
-                        <div key={comment._id} className="flex items-start gap-4">
-                            <Avatar className="w-10 h-10 border">
-                                <AvatarImage src={comment.author.avatar || "/placeholder-user.jpg"} alt={comment.author.username} />
-                                <AvatarFallback>{comment.author.username.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 grid gap-2">
-                                <div className="flex items-center justify-between">
-                                    <div className="font-medium">{comment.author.username}</div>
-                                    <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                                        {[...Array(5)].map((_, i) => (
-                                            <StarIcon key={i} className={`w-4 h-4 ${i < comment.rating ? 'fill-primary' : 'fill-muted stroke-muted-foreground'}`} />
-                                        ))}
+                    {comments.length > 0 ? (
+                        comments.map(comment => (
+                            <div key={comment._id} className="flex items-start gap-4">
+                                <Avatar className="w-10 h-10 border">
+                                    <AvatarImage src={comment.author.avatar || "/placeholder-user.jpg"} alt={comment.author.username} />
+                                    <AvatarFallback>{comment.author.username.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 grid gap-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="font-medium">{comment.author.username}</div>
+                                        <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                                            {[...Array(5)].map((_, i) => (
+                                                <StarIcon key={i} className={`w-4 h-4 ${i < comment.rating ? 'fill-primary' : 'fill-muted stroke-muted-foreground'}`} />
+                                            ))}
+                                        </div>
                                     </div>
+                                    <div className="text-muted-foreground">{comment.description}</div>
                                 </div>
-                                <div className="text-muted-foreground">{comment.description}</div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    ) : (
+                        <p>No reviews yet. Be the first to review this book!</p>
+                    )}
                 </div>
                 <div>
                     <form onSubmit={handleCommentSubmit}>
