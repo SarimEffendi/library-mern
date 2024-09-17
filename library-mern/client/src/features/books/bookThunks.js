@@ -15,13 +15,6 @@ export const fetchBooks = createAsyncThunk(
             const response = await axiosInstance.get("/book", {
                 params: { page, limit },
             });
-            // Expected response structure:
-            // {
-            //   books: [...],
-            //   totalBooks: 50,
-            //   currentPage: 1,
-            //   totalPages: 10
-            // }
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data || "Error fetching books");

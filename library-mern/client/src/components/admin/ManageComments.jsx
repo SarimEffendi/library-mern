@@ -4,14 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import {
     Pagination,
     PaginationContent,
-    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationNext,
@@ -30,10 +27,6 @@ export default function ManageComments() {
         reloadComments,
     } = useComments();
 
-    console.log("Comments loaded:", comments);
-    console.log("Loading state:", loading);
-    console.log("Error state:", error);
-
     const [currentPage, setCurrentPage] = useState(1);
     const commentsPerPage = 5;
     const indexOfLastComment = currentPage * commentsPerPage;
@@ -41,11 +34,7 @@ export default function ManageComments() {
     const currentComments = comments.slice(indexOfFirstComment, indexOfLastComment);
     const totalPages = Math.ceil(comments.length / commentsPerPage);
 
-    console.log("Current Page:", currentPage);
-    console.log("Current Comments on Page:", currentComments);
-
     const handlePageChange = (pageNumber) => {
-        console.log("Changing to page:", pageNumber);
         setCurrentPage(pageNumber);
     };
 
@@ -56,15 +45,9 @@ export default function ManageComments() {
     });
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    useEffect(() => {
-        console.log("New comment state updated:", newComment);
-    }, [newComment]);
-
     const handleEditComment = (comment) => {
-        console.log("Editing comment:", comment);
         const commentId = comment._id;
-        console.log("Comment ID:", commentId);  
-        setEditingComment(commentId,comment);
+        setEditingComment(commentId);
         setNewComment({
             bookId: comment.book._id,
             description: comment.description,
@@ -72,9 +55,7 @@ export default function ManageComments() {
         setIsDialogOpen(true);
     };
 
-
     const handleAddComment = () => {
-        console.log("Adding new comment");
         setEditingComment(null);
         setNewComment({
             bookId: "",
@@ -85,37 +66,49 @@ export default function ManageComments() {
 
     const handleSaveComment = async () => {
         console.log("Saving comment. Editing comment:", editingComment);
+
         if (editingComment) {
-            console.log("Editing existing comment with ID:", editingComment._id);
-            await editComment(editingComment._id, {
+            // Edit existing comment
+            console.log("Editing existing comment with ID:", editingComment);
+            await editComment(editingComment, {
                 description: newComment.description,
             });
+
+            // Update the local state with the edited comment
+            const updatedComments = comments.map((comment) =>
+                comment._id === editingComment ? { ...comment, description: newComment.description } : comment
+            );
+            setComments(updatedComments);
         } else {
+            // Add new comment
             console.log("Adding new comment:", newComment);
-            await addComment(newComment);
+            const addedComment = await addComment(newComment);
+            setComments([...comments, addedComment]);
         }
+
+        // After saving, reset the state and close the dialog
+        setIsDialogOpen(false);
         setEditingComment(null);
         setNewComment({
             bookId: "",
             description: "",
         });
-        setIsDialogOpen(false);
+
         console.log("Comment saved.");
     };
 
     const handleDeleteComment = async (id) => {
-        console.log("Deleting comment with ID:", id);
         await deleteComment(id);
+        setComments(comments.filter((comment) => comment._id !== id));
     };
 
-    if (loading) {
-        console.log("Loading comments...");
-        return <div>Loading comments...</div>;
-    }
-    if (error) {
-        console.error("Error loading comments:", error);
-        return <div>Error: {error}</div>;
-    }
+    // Only fetch comments on component mount, not on every render
+    useEffect(() => {
+        reloadComments(); // Ensure the latest comments are always fetched
+    }, []); // Empty dependency array ensures it only runs once on mount
+
+    if (loading) return <div>Loading comments...</div>;
+    if (error) return <div>Error: {error}</div>;
 
     return (
         <div className="flex flex-col h-screen p-4">
@@ -143,16 +136,6 @@ export default function ManageComments() {
                                         />
                                     </div>
                                 )}
-                                {!editingComment && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="bookName">Book Name</Label>
-                                        <Input
-                                            id="bookName"
-                                            value={newComment.bookName}
-                                            onChange={(e) => setNewComment({ ...newComment, bookName: e.target.value })}
-                                        />
-                                    </div>
-                                )}
                                 <div className="space-y-2">
                                     <Label htmlFor="description">Description</Label>
                                     <Textarea
@@ -161,35 +144,6 @@ export default function ManageComments() {
                                         onChange={(e) => setNewComment({ ...newComment, description: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="publishedDate">Published Date</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                className="w-full justify-start text-left font-normal"
-                                                disabled={editingComment !== null}
-                                            >
-                                                <CalendarDaysIcon className="mr-1 h-4 w-4 -translate-x-1" />
-                                                {newComment.publishedDate
-                                                    ? new Date(newComment.publishedDate).toISOString().split('T')[0]
-                                                    : "Pick a date"}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                initialFocus
-                                                selected={newComment.publishedDate}
-                                                onSelect={(date) => {
-                                                    console.log("Date selected:", date);
-                                                    setNewComment({ ...newComment, publishedDate: date });
-                                                }}
-                                                disabled={editingComment !== null}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
                             </div>
                         </div>
                         <DialogFooter>
@@ -197,7 +151,6 @@ export default function ManageComments() {
                                 <Button
                                     variant="outline"
                                     onClick={() => {
-                                        console.log("Closing dialog without saving");
                                         setIsDialogOpen(false);
                                         setEditingComment(null);
                                         setNewComment({
@@ -288,11 +241,6 @@ export default function ManageComments() {
                                         </PaginationLink>
                                     </PaginationItem>
                                 ))}
-                                {totalPages > 5 && currentPage < totalPages - 1 && (
-                                    <PaginationItem>
-                                        <PaginationEllipsis />
-                                    </PaginationItem>
-                                )}
                                 <PaginationItem>
                                     <PaginationNext
                                         href="#"
@@ -308,11 +256,8 @@ export default function ManageComments() {
                 </Card>
             </main>
         </div>
-        );
-    }
-
-
-
+    );
+}
 
 function CalendarDaysIcon(props) {
     return (

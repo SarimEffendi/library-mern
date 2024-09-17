@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getBookById } from '@/api/bookApi';
-import { postComment } from '@/api/commentApi';
+import { getComments, postComment } from '@/api/commentApi';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,14 +41,24 @@ const BookDetails = () => {
             try {
                 const bookResponse = await getBookById(bookId);
                 setBook(bookResponse);
-                
             } catch (err) {
                 console.error('Error fetching book details:', err);
                 setError('Error fetching book details');
             }
         };
 
+        const fetchBookComments = async () => {
+            try {
+                const commentsResponse = await getComments(bookId);
+                setComments(commentsResponse);
+            } catch (err) {
+                console.error('Error fetching comments:', err);
+                setError('Error fetching comments');
+            }
+        };
+
         fetchBookDetails();
+        fetchBookComments();
     }, [bookId]);
 
     const handleCommentSubmit = async (e) => {
@@ -57,7 +67,10 @@ const BookDetails = () => {
             const commentData = { description: newComment };
             await postComment(bookId, commentData);
             setNewComment(''); 
-
+            
+            // Refresh comments after posting a new one
+            const updatedComments = await getComments(bookId);
+            setComments(updatedComments);
         } catch (err) {
             setError('Error posting comment');
         }

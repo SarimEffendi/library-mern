@@ -1,15 +1,10 @@
-import axios from 'axios';
-import { BASE_URL } from '../utils/constants';
+import axiosInstance from '@/api/axiosInstance'; // Import the axios instance with baseURL and interceptors
 
 // Fetch all comments
 export const getAllComments = async () => {
     try {
         console.log("Fetching all comments...");
-        const response = await axios.get(`${BASE_URL}/comment`, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-            },
-        });
+        const response = await axiosInstance.get('/comment'); // No need for BASE_URL or headers
         console.log("All comments fetched successfully:", response.data);
         return response.data;
     } catch (error) {
@@ -19,18 +14,16 @@ export const getAllComments = async () => {
 };
 
 // Fetch comments for a specific book
+// Fetch comments for a specific book
+// Fetch comments for a specific book
 export const getComments = async (bookId) => {
     if (!bookId) {
         console.error('bookId is undefined or null');
-        return;
+        return [];
     }
     try {
         console.log(`Fetching comments for bookId: ${bookId}`);
-        const response = await axios.get(`${BASE_URL}/comment/${bookId}`, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-            },
-        });
+        const response = await axiosInstance.get(`/comment/book/${bookId}`);
         console.log(`Comments for bookId ${bookId} fetched successfully:`, response.data);
         return response.data;
     } catch (error) {
@@ -38,6 +31,7 @@ export const getComments = async (bookId) => {
         throw error;
     }
 };
+
 
 // Post a new comment
 export const postComment = async (bookId, commentData) => {
@@ -47,12 +41,7 @@ export const postComment = async (bookId, commentData) => {
     }
     try {
         console.log(`Posting new comment for bookId: ${bookId}`, commentData);
-        const response = await axios.post(`${BASE_URL}/comment/${bookId}`, commentData, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-                'Content-Type': 'application/json',
-            },
-        });
+        const response = await axiosInstance.post(`/comment/${bookId}`, commentData); // No need for BASE_URL or headers
         console.log("New comment posted successfully:", response.data);
         return response.data;
     } catch (error) {
@@ -69,12 +58,7 @@ export const updateExistingComment = async (commentId, updatedFields) => {
     }
     try {
         console.log(`Updating comment ID: ${commentId} with fields:`, updatedFields);
-        const response = await axios.put(`${BASE_URL}/comment/${commentId}`, updatedFields, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-                'Content-Type': 'application/json',
-            },
-        });
+        const response = await axiosInstance.put(`/comment/${commentId}`, updatedFields); // No need for BASE_URL or headers
         console.log("Comment updated successfully:", response.data);
         return response.data;
     } catch (error) {
@@ -91,11 +75,7 @@ export const deleteExistingComment = async (commentId) => {
     }
     try {
         console.log(`Deleting comment ID: ${commentId}`);
-        const response = await axios.delete(`${BASE_URL}/comment/${commentId}`, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-            },
-        });
+        const response = await axiosInstance.delete(`/comment/${commentId}`); // No need for BASE_URL or headers
         console.log(`Comment ID ${commentId} deleted successfully.`);
         return response.data;
     } catch (error) {

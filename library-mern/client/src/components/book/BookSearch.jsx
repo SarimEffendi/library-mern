@@ -2,28 +2,70 @@ import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { getAllBooks } from "@/api/bookApi"; 
+import { getAllBooks } from "@/api/bookApi";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function BookSearch() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [books, setBooks] = useState([]);
+    const [books, setBooks] = useState([]); // List of books for the current page
+    const [currentPage, setCurrentPage] = useState(1); // Tracks the current page
+    const [totalPages, setTotalPages] = useState(1); // Total number of pages
+    const itemsPerPage = 5; // Set the items per page as per backend config
 
+    // Fetch books whenever currentPage or searchTerm changes
     useEffect(() => {
         const fetchBooks = async () => {
             try {
-                const fetchedBooks = await getAllBooks();
-                console.log(fetchedBooks); 
-                setBooks(fetchedBooks);
+                const fetchedData = await getAllBooks(currentPage, itemsPerPage, searchTerm); // Pass page and limit
+                console.log("Fetched Data: ", fetchedData);
+
+                if (fetchedData.books) {
+                    setBooks(fetchedData.books); // Set books for the current page
+                    setTotalPages(fetchedData.totalPages); // Set total pages from the response
+                } else {
+                    console.error("Error: Fetched data does not contain valid 'books' array");
+                    setBooks([]);
+                }
             } catch (error) {
                 console.error("Error fetching books:", error);
+                setBooks([]);
             }
         };
-        fetchBooks();
-    }, []);
 
-    const filteredBooks = books.filter((book) =>
-        book.title?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        fetchBooks(); // Call the function to fetch books
+    }, [currentPage, searchTerm]); // Dependency array ensures fetching when page or search term changes
+
+    // Handle page change
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: "smooth" }); // Optional: Scroll to top on page change
+    };
+
+    // Generate pagination items
+    const paginationItems = [];
+    for (let page = 1; page <= totalPages; page++) {
+        paginationItems.push(
+            <PaginationItem key={page}>
+                <PaginationLink
+                    href="#"
+                    isActive={page === currentPage}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(page);
+                    }}
+                >
+                    {page}
+                </PaginationLink>
+            </PaginationItem>
+        );
+    }
 
     return (
         <div className="w-full max-w-5xl mx-auto px-4 py-8">
@@ -37,7 +79,7 @@ export default function BookSearch() {
                 />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {filteredBooks.map((book) => (
+                {books.map((book) => (
                     <Link
                         key={book._id}
                         to={`/book/${book._id}`}
@@ -57,9 +99,7 @@ export default function BookSearch() {
                                 by {book.author?.username || "Unknown Author"}
                             </p>
                             <div className="flex items-center gap-2 mb-2">
-                                <div className="text-lg font-semibold">
-                                    ${book.price || "N/A"}
-                                </div>
+                                <div className="text-lg font-semibold">${book.price || "N/A"}</div>
                                 <div className="text-sm text-muted-foreground">
                                     Rent for ${book.rentalPrice || "N/A"}
                                 </div>
@@ -74,6 +114,37 @@ export default function BookSearch() {
                     </Link>
                 ))}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="mt-8 flex justify-center">
+                    <Pagination>
+                        <PaginationContent>
+                            <PaginationItem>
+                                <PaginationPrevious
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        if (currentPage > 1) handlePageChange(currentPage - 1);
+                                    }}
+                                    disabled={currentPage === 1}
+                                />
+                            </PaginationItem>
+                            {paginationItems}
+                            <PaginationItem>
+                                <PaginationNext
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                                    }}
+                                    disabled={currentPage === totalPages}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </div>
+            )}
         </div>
     );
 }

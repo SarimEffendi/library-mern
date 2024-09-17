@@ -59,7 +59,7 @@ exports.updateCommentById = asyncHandler(async (req, res) => {
             const updatedComment = await Comment.findByIdAndUpdate(req.params.commentId, updateFields, { new: true })
                 .populate("author", "username")
                 .populate("book", "title");
-            res.json(updatedComment);
+            res.json(updatedComment); 
         } else {
             res.status(403).json({ error: "Access denied" });
         }
@@ -95,7 +95,7 @@ exports.getCommentsByBookId = asyncHandler(async (req, res) => {
             .populate("book", "title");
 
         if (!comments.length) {
-            return res.status(404).json({ message: "No comments found for this book!" });
+            return res.json([]); 
         }
 
         res.json(comments);
@@ -103,6 +103,7 @@ exports.getCommentsByBookId = asyncHandler(async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 // In comment.controller.js
 
