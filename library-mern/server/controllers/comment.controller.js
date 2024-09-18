@@ -4,16 +4,23 @@ const Book = require("../models/book.model");
 
 exports.createComment = asyncHandler(async (req, res) => {
     try {
-        const { description } = req.body;
+        const { description, rating } = req.body;
+
+        // Validate rating
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: "Rating must be between 1 and 5" });
+        }
+
         const newComment = new Comment({
             description,
+            rating,
             author: req.user._id,
             book: req.params.bookId
         });
         await newComment.save();
 
         const populatedComment = await Comment.findById(newComment._id)
-            .populate("author", "username")
+            .populate("author", "username avatar")
             .populate("book", "title");
 
         res.status(201).json(populatedComment);
@@ -46,7 +53,7 @@ exports.getAllComments = asyncHandler(async (req, res) => {
 
 exports.updateCommentById = asyncHandler(async (req, res) => {
     try {
-        const { description } = req.body;
+        const { description, rating } = req.body;
         const comment = await Comment.findById(req.params.commentId);
 
         if (!comment) {
@@ -54,9 +61,18 @@ exports.updateCommentById = asyncHandler(async (req, res) => {
         }
 
         if (req.user.role.includes('admin') || comment.author.toString() === req.user._id.toString()) {
-            const updateFields = { description };
+            const updateFields = {};
+            
+            if (description) updateFields.description = description;
+            if (rating !== undefined) {
+                if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+                    return res.status(400).json({ error: 'Rating must be a number between 1 and 5.' });
+                }
+                updateFields.rating = rating;
+            }
+
             const updatedComment = await Comment.findByIdAndUpdate(req.params.commentId, updateFields, { new: true })
-                .populate("author", "username")
+                .populate("author", "username avatar")
                 .populate("book", "title");
             res.json(updatedComment); 
         } else {
@@ -66,6 +82,7 @@ exports.updateCommentById = asyncHandler(async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 
 exports.deleteCommentById = asyncHandler(async (req, res) => {

@@ -238,3 +238,20 @@ exports.getBooksByAuthor = asyncHandler(async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+exports.getCommentByBookId = asyncHandler(async (req, res) => {
+    try {
+        const comments = await Comment.find({ book: req.params.bookId })
+            .populate("author", "username")
+            .populate("book", "title");
+
+        if (!comments.length){
+            return res.json([]); 
+        }
+
+        res.json(comments);
+        console.log(comments);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});

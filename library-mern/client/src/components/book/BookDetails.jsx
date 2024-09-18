@@ -1,4 +1,3 @@
-// src/components/BookDetails.jsx
 import React, { useEffect, useState } from 'react';
 import { getBookById } from '@/api/bookApi';
 import { getComments, postComment } from '@/api/commentApi';
@@ -10,18 +9,19 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStripe } from '@stripe/react-stripe-js';
 
-const StarIcon = (props) => (
+const StarIcon = ({ filled, onClick }) => (
     <svg
-        {...props}
+        onClick={onClick}
         xmlns="http://www.w3.org/2000/svg"
         width="24"
         height="24"
         viewBox="0 0 24 24"
-        fill="none"
+        fill={filled ? "currentColor" : "none"}
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        className={`cursor-pointer ${filled ? 'text-yellow-400' : 'text-gray-300'}`}
     >
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
@@ -34,6 +34,8 @@ const BookDetails = () => {
 
     const [book, setBook] = useState(null);
     const [newComment, setNewComment] = useState('');
+    const [newRating, setNewRating] = useState(0); // New state for rating
+    const [hoverRating, setHoverRating] = useState(0); // State for hover effect
     const [comments, setComments] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -78,12 +80,17 @@ const BookDetails = () => {
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
-        console.log('Submitting new comment:', newComment);
+        console.log('Submitting new comment:', newComment, 'with rating:', newRating);
+        if (newRating === 0) {
+            setError('Please provide a rating.');
+            return;
+        }
         try {
-            const commentData = { description: newComment };
+            const commentData = { description: newComment, rating: newRating };
             const postResponse = await postComment(bookId, commentData);
             console.log('Comment posted successfully:', postResponse);
             setNewComment('');
+            setNewRating(0); // Reset rating
 
             // Refresh comments after posting a new one
             console.log('Refreshing comments after new comment submission');
@@ -92,7 +99,7 @@ const BookDetails = () => {
             setComments(updatedComments);
         } catch (err) {
             console.error('Error posting comment:', err);
-            setError('Error posting comment');
+            setError(err.response?.data?.error || 'Error posting comment');
         }
     };
 
@@ -222,7 +229,10 @@ const BookDetails = () => {
                                         <div className="font-medium">{comment.author.username}</div>
                                         <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
                                             {[...Array(5)].map((_, i) => (
-                                                <StarIcon key={i} className={`w-4 h-4 ${i < comment.rating ? 'fill-primary' : 'fill-muted stroke-muted-foreground'}`} />
+                                                <StarIcon
+                                                    key={i}
+                                                    filled={i < comment.rating}
+                                                />
                                             ))}
                                         </div>
                                     </div>
@@ -236,6 +246,18 @@ const BookDetails = () => {
                 </div>
                 <div>
                     <form onSubmit={handleCommentSubmit}>
+                        <div className="flex items-center mb-2">
+                            <span className="mr-2">Your Rating:</span>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <StarIcon
+                                    key={star}
+                                    filled={star <= (hoverRating || newRating)}
+                                    onClick={() => setNewRating(star)}
+                                    onMouseEnter={() => setHoverRating(star)}
+                                    onMouseLeave={() => setHoverRating(0)}
+                                />
+                            ))}
+                        </div>
                         <Textarea
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}

@@ -13,6 +13,7 @@ router.get('/:id', authenticate, bookController.getBookById);
 router.put('/:id', authenticate, bookController.updateBookById);
 router.delete('/:id', authenticate, bookController.deleteBookById);
 router.get('/author/:authorId', authenticate, bookController.getBooksByAuthor);
+router.get('/:commentId',authenticate , bookController.getCommentByBookId);
 
 
 router.post('/access/purchased', authenticate, verifyPayment, bookController.getBookContent);

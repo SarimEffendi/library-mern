@@ -1,4 +1,5 @@
-const mongoose = require("mongoose")
+// models/comment.model.js
+const mongoose = require("mongoose");
 
 const commentSchema = new mongoose.Schema({
     book: {
@@ -13,6 +14,13 @@ const commentSchema = new mongoose.Schema({
     },
     description: {
         type: String,
+        required: true,
+    },
+    rating: { // New field
+        type: Number,
+        min: 1,
+        max: 5,
+        required: true,
     },
     publishedAt: {
         type: Date,
@@ -20,6 +28,6 @@ const commentSchema = new mongoose.Schema({
     }
 }, {
     timestamps: true,
-})
+});
 
-module.exports = mongoose.model('Comment', commentSchema)
+module.exports = mongoose.model('Comment', commentSchema);

@@ -30,8 +30,11 @@ const BookList = () => {
             try {
                 const { purchasedBooks, rentedBooks } = await getOwnedBooks();
 
-                const allBooks = [...purchasedBooks, ...rentedBooks];
+                // Combine and sort books by created date (newest first)
+                const allBooks = [...purchasedBooks, ...rentedBooks].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                console.log("created at book 0",allBooks[0].createdAt);
                 setBooks(allBooks);
+                console.log("all bookssssss",allBooks);
             } catch (error) {
                 setError("Failed to fetch owned books.");
             } finally {
@@ -59,7 +62,7 @@ const BookList = () => {
                                     <BookIcon className="w-6 h-6" />
                                 </div>
                                 <div className="grid gap-1">
-                                    <h3 className="font-semibold">{book.title}</h3>
+                                    <h3 className="font-semibold">{book.name || book.title}</h3> {/* Use book.name if available */}
                                     <p className="text-muted-foreground">by {book.author}</p>
                                 </div>
                                 <Badge variant="outline" className="px-2 py-1 text-xs">
