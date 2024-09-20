@@ -1,17 +1,21 @@
+// BookDetails.jsx
 import React, { useEffect, useState } from 'react';
-import { getBookById } from '@/api/bookApi';
-import { getComments, postComment } from '@/api/commentApi';
-import { createCheckoutSession } from '@/api/paymentApi';
+import { useDispatch, useSelector } from 'react-redux';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useStripe } from '@stripe/react-stripe-js';
+import { fetchBookById } from '@/features/books/bookThunks';
+import { addComment } from '@/features/comments/commentThunks';
+import { createCheckoutSession } from '@/features/payments/paymentThunks';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useStripe } from '@stripe/react-stripe-js';
 
-const StarIcon = ({ filled, onClick }) => (
+const StarIcon = ({ filled, onClick, onMouseEnter, onMouseLeave }) => (
     <svg
         onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         xmlns="http://www.w3.org/2000/svg"
         width="24"
         height="24"
@@ -29,143 +33,65 @@ const StarIcon = ({ filled, onClick }) => (
 
 const BookDetails = () => {
     const { bookId } = useParams();
+    const dispatch = useDispatch();
     const navigate = useNavigate();
     const stripe = useStripe();
 
-    const [book, setBook] = useState(null);
+    const { currentBook, loading: bookLoading, error: bookError } = useSelector((state) => state.books);
+    const { sessionUrl, loading: paymentLoading, error: paymentError } = useSelector((state) => state.payments);
+
     const [newComment, setNewComment] = useState('');
-    const [newRating, setNewRating] = useState(0); // New state for rating
-    const [hoverRating, setHoverRating] = useState(0); // State for hover effect
-    const [comments, setComments] = useState([]);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [newRating, setNewRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
 
     useEffect(() => {
-        console.log('BookDetails Component Mounted');
-        console.log('Extracted bookId from URL:', bookId);
-
-        if (!bookId) {
-            console.error('No book ID provided');
-            setError('No book ID provided');
-            return;
+        if (bookId) {
+            dispatch(fetchBookById(bookId));
         }
+    }, [dispatch, bookId]);
 
-        const fetchBookDetails = async () => {
-            console.log(`Fetching details for bookId: ${bookId}`);
-            try {
-                const bookResponse = await getBookById(bookId);
-                console.log('Book details fetched successfully:', bookResponse);
-                setBook(bookResponse);
-            } catch (err) {
-                console.error('Error fetching book details:', err);
-                setError('Error fetching book details');
-            }
-        };
-
-        const fetchBookComments = async () => {
-            console.log(`Fetching comments for bookId: ${bookId}`);
-            try {
-                const commentsResponse = await getComments(bookId);
-                console.log('Comments fetched successfully:', commentsResponse);
-                setComments(commentsResponse);
-            } catch (err) {
-                console.error('Error fetching comments:', err);
-                setError('Error fetching comments');
-            }
-        };
-
-        fetchBookDetails();
-        fetchBookComments();
-    }, [bookId]);
+    // Effect to handle payment session URL
+    useEffect(() => {
+        if (sessionUrl) {
+            window.location.href = sessionUrl; // Redirect user to the Stripe Checkout page
+        }
+    }, [sessionUrl]);
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
-        console.log('Submitting new comment:', newComment, 'with rating:', newRating);
         if (newRating === 0) {
-            setError('Please provide a rating.');
-            return;
+            return alert('Please provide a rating.');
         }
-        try {
-            const commentData = { description: newComment, rating: newRating };
-            const postResponse = await postComment(bookId, commentData);
-            console.log('Comment posted successfully:', postResponse);
-            setNewComment('');
-            setNewRating(0); // Reset rating
-
-            // Refresh comments after posting a new one
-            console.log('Refreshing comments after new comment submission');
-            const updatedComments = await getComments(bookId);
-            console.log('Updated comments fetched:', updatedComments);
-            setComments(updatedComments);
-        } catch (err) {
-            console.error('Error posting comment:', err);
-            setError(err.response?.data?.error || 'Error posting comment');
-        }
+        const commentData = { description: newComment, rating: newRating };
+        await dispatch(addComment({ bookId, commentData }));
+        setNewComment('');
+        setNewRating(0);
     };
 
     const handlePayment = async (type) => {
-        console.log(`Initiating payment of type: ${type} for bookId: ${bookId}`);
+        console.log(`Initiating payment for bookId: ${bookId}, type: ${type}`);
         if (!stripe) {
-            console.error('Stripe has not loaded yet.');
-            setError('Stripe has not loaded yet. Please try again later.');
-            return;
+            return alert('Stripe has not loaded yet.');
         }
-
-        setLoading(true);
-        try {
-            // Initiate the checkout session using the API function
-            const response = await createCheckoutSession(bookId, type);
-            console.log('Checkout session created successfully:', response);
-            const { url } = response;
-
-            if (url) {
-                console.log('Redirecting to Stripe Checkout URL:', url);
-                // Redirect to Stripe Checkout
-                window.location.href = url;
-            } else {
-                console.error('Stripe Checkout URL not found in response:', response);
-                setError('Failed to initiate payment. Please try again.');
-                setLoading(false);
-            }
-        } catch (err) {
-            if (err.response) {
-                // Server responded with a status other than 2xx
-                console.error('Error response from server:', err.response);
-                setError(`Payment initiation failed: ${err.response.data.message || 'Unknown error'}`);
-            } else if (err.request) {
-                // Request was made but no response received
-                console.error('No response received from server:', err.request);
-                setError('No response from server. Please try again later.');
-            } else {
-                // Something else caused the error
-                console.error('Error creating checkout session:', err.message);
-                setError('Failed to initiate payment. Please try again.');
-            }
-            setLoading(false);
-        }
+        await dispatch(createCheckoutSession({ bookId, type }));
     };
 
-    // Log the current state whenever it changes (optional, can be verbose)
-    useEffect(() => {
-        console.log('Current State:', { book, comments, error, loading });
-    }, [book, comments, error, loading]);
+    if (bookLoading) {
+        return <div>Loading...</div>;
+    }
 
-    if (error) {
-        console.error('Rendering error state:', error);
+    if (bookError) {
         return (
-            <div className="max-w-4xl mx-auto p-6 sm:p-8 md:p-10 bg-background rounded-lg shadow-lg">
-                <h1 className="text-2xl font-bold mb-4">Error</h1>
-                <p className="text-red-500">Error: {error}</p>
-                <Button className="mt-4" onClick={() => navigate('/')}>
-                    Go to Home
-                </Button>
+            <div>
+                <h1>Error</h1>
+                <p>{bookError}</p>
+                <Button onClick={() => navigate('/')}>Go to Home</Button>
             </div>
         );
     }
 
-    if (!book) {
-        console.log('Book data not loaded yet. Rendering loading state.');
-        return <div className="max-w-4xl mx-auto p-6 sm:p-8 md:p-10 bg-background rounded-lg shadow-lg">Loading...</div>;
+    if (!currentBook) {
+        return <div>Book not found</div>;
     }
 
     return (
@@ -173,52 +99,46 @@ const BookDetails = () => {
             <div className="grid md:grid-cols-2 gap-8">
                 <div>
                     <img
-                        src={book.coverImage || "https://m.media-amazon.com/images/I/416V8IMmH7L._SX342_SY445_.jpg"}
+                        src={currentBook.coverImage || "https://m.media-amazon.com/images/I/416V8IMmH7L._SX342_SY445_.jpg"}
                         alt="Book Cover"
                         width={400}
                         height={600}
                         className="rounded-lg w-full h-auto object-cover"
-                        style={{ aspectRatio: "400/600", objectFit: "cover" }}
-                        onLoad={() => console.log('Book cover image loaded successfully')}
-                        onError={() => console.error('Error loading book cover image')}
                     />
                 </div>
                 <div className="grid gap-6">
-                    <div>
-                        <h1 className="text-3xl font-bold">{book.title}</h1>
-                        <p className="text-muted-foreground">by {book.author.username}</p>
-                    </div>
+                    <h1 className="text-3xl font-bold">{currentBook.title}</h1>
+                    <p className="text-muted-foreground">by {currentBook.author.username}</p>
                     <div className="prose max-w-none">
-                        <p>{book.description}</p>
+                        <p>{currentBook.description}</p>
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                         <div>
                             <div className="text-muted-foreground">Price</div>
-                            <div className="text-2xl font-bold">${book.price}</div>
+                            <div className="text-2xl font-bold">${currentBook.price}</div>
                         </div>
                         <div>
                             <div className="text-muted-foreground">Rental Price</div>
-                            <div className="text-2xl font-bold">${book.rentalPrice}</div>
+                            <div className="text-2xl font-bold">${currentBook.rentalPrice}</div>
                         </div>
                     </div>
                     <div className="flex gap-4">
-                        <Button size="lg" onClick={() => handlePayment('purchase')} disabled={loading}>
-                            {loading ? 'Processing...' : 'Buy'}
+                        <Button size="lg" onClick={() => handlePayment('purchase')} disabled={paymentLoading}>
+                            {paymentLoading ? 'Processing...' : 'Buy'}
                         </Button>
-                        <Button variant="outline" size="lg" onClick={() => handlePayment('rental')} disabled={loading}>
-                            {loading ? 'Processing...' : 'Rent'}
+                        <Button variant="outline" size="lg" onClick={() => handlePayment('rental')} disabled={paymentLoading}>
+                            {paymentLoading ? 'Processing...' : 'Rent'}
                         </Button>
                     </div>
+                    {paymentError && <p className="text-red-500 mt-4">Error: {paymentError}</p>}
                 </div>
             </div>
             <Separator className="my-8" />
             <div className="grid gap-6">
-                <div>
-                    <h2 className="text-2xl font-bold">Reviews</h2>
-                </div>
+                <h2 className="text-2xl font-bold">Reviews</h2>
                 <div className="grid gap-4">
-                    {comments.length > 0 ? (
-                        comments.map(comment => (
+                    {currentBook.comments?.length > 0 ? (
+                        currentBook.comments.map(comment => (
                             <div key={comment._id} className="flex items-start gap-4">
                                 <Avatar className="w-10 h-10 border">
                                     <AvatarImage src={comment.author.avatar || "/placeholder-user.jpg"} alt={comment.author.username} />
@@ -229,14 +149,11 @@ const BookDetails = () => {
                                         <div className="font-medium">{comment.author.username}</div>
                                         <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
                                             {[...Array(5)].map((_, i) => (
-                                                <StarIcon
-                                                    key={i}
-                                                    filled={i < comment.rating}
-                                                />
+                                                <StarIcon key={i} filled={i < comment.rating} />
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="text-muted-foreground">{comment.description}</div>
+                                    <p className="text-muted-foreground">{comment.description}</p>
                                 </div>
                             </div>
                         ))
@@ -244,33 +161,30 @@ const BookDetails = () => {
                         <p>No reviews yet. Be the first to review this book!</p>
                     )}
                 </div>
-                <div>
-                    <form onSubmit={handleCommentSubmit}>
-                        <div className="flex items-center mb-2">
-                            <span className="mr-2">Your Rating:</span>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <StarIcon
-                                    key={star}
-                                    filled={star <= (hoverRating || newRating)}
-                                    onClick={() => setNewRating(star)}
-                                    onMouseEnter={() => setHoverRating(star)}
-                                    onMouseLeave={() => setHoverRating(0)}
-                                />
-                            ))}
-                        </div>
-                        <Textarea
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="Write a review..."
-                            className="w-full rounded-lg border border-muted p-4"
-                            rows={4}
-                            required
-                        />
-                        <div className="flex justify-end mt-2">
-                            <Button type="submit">Submit Review</Button>
-                        </div>
-                    </form>
-                </div>
+                <form onSubmit={handleCommentSubmit}>
+                    <div className="flex items-center mb-2">
+                        <span className="mr-2">Your Rating:</span>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                            <StarIcon
+                                key={star}
+                                filled={star <= (hoverRating || newRating)}
+                                onClick={() => setNewRating(star)}
+                                onMouseEnter={() => setHoverRating(star)}
+                                onMouseLeave={() => setHoverRating(0)}
+                            />
+                        ))}
+                    </div>
+                    <Textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Write a review..."
+                        rows={4}
+                        required
+                    />
+                    <div className="flex justify-end mt-2">
+                        <Button type="submit">Submit Review</Button>
+                    </div>
+                </form>
             </div>
         </div>
     );

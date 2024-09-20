@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
-import { registerUser } from '@/api/authApi';
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser } from '@/features/auth/authThunks'; 
 
 export default function Signup() {
     const [username, setUsername] = useState('');
@@ -10,15 +11,23 @@ export default function Signup() {
     const [selectedRoles, setSelectedRoles] = useState([]);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [errors, setErrors] = useState({});
+
+    const dispatch = useDispatch();
     const navigate = useNavigate();
+    const { error, isAuthenticated } = useSelector((state) => state.auth);
+
+    // Redirect to homepage after successful signup
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/');
+        }
+    }, [isAuthenticated, navigate]);
 
     const toggleRole = (role) => {
         setSelectedRoles((prevRoles) => {
-            const updatedRoles = prevRoles.includes(role)
+            return prevRoles.includes(role)
                 ? prevRoles.filter((r) => r !== role)
                 : [...prevRoles, role];
-            console.log("Selected roles:", updatedRoles);
-            return updatedRoles;
         });
     };
 
@@ -33,7 +42,7 @@ export default function Signup() {
     };
 
     const validateUsername = (username) => {
-        const usernameRegex = /^[a-zA-Z0-9_]{3,}$/; 
+        const usernameRegex = /^[a-zA-Z0-9_]{3,}$/;
         return usernameRegex.test(username);
     };
 
@@ -75,35 +84,23 @@ export default function Signup() {
         return validationErrors;
     };
 
-    const handleSignup = async (e) => {
+    const handleSignup = (e) => {
         e.preventDefault();
         const validationErrors = validateInputs();
 
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
-            console.log("Validation errors:", validationErrors);
             return;
         }
 
-        try {
-            const userData = {
-                username,
-                email,
-                password,
-                role: selectedRoles
-            };
-            console.log("Sending user data:", userData);
-            await registerUser(userData);
-            console.log("Registration successful");
-            navigate('/signin'); 
-        } catch (error) {
-            console.error("Error during registration:", error);
-            if (error.response && error.response.data) {
-                setErrors({ api: error.response.data.error || 'Something went wrong' });
-            } else {
-                setErrors({ api: 'Something went wrong' });
-            }
-        }
+        const userData = {
+            username,
+            email:email.toLowerCase(),
+            password,
+            role: selectedRoles
+        };
+        console.log(userData);
+        dispatch(registerUser(userData));
     };
 
     const isSelected = (role) => selectedRoles.includes(role);
@@ -195,7 +192,7 @@ export default function Signup() {
                             {errors.roles && <p className="text-red-500 text-sm">{errors.roles}</p>}
                         </div>
 
-                        {errors.api && <p className="text-red-500">{errors.api}</p>}
+                        {error && <p className="text-red-500">{error}</p>}
 
                         <div className="flex items-start">
                             <div className="flex items-center h-5">

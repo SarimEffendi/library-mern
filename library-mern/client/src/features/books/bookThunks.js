@@ -1,14 +1,13 @@
-// src/features/books/bookThunks.js
-
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import axiosInstance from "../../api/axiosInstance"; 
+import axiosInstance from "@/api/axiosInstance";
 
+// Fetch all books with pagination
 export const fetchBooks = createAsyncThunk(
     "books/fetchBooks",
-    async ({ page, limit }, { rejectWithValue }) => {
+    async ({ page, limit, searchTerm = "" }, { rejectWithValue }) => {
         try {
             const response = await axiosInstance.get("/book", {
-                params: { page, limit },
+                params: { page, limit , searchTerm },
             });
             return response.data;
         } catch (error) {
@@ -16,7 +15,7 @@ export const fetchBooks = createAsyncThunk(
         }
     }
 );
-
+// Fetch a book by ID
 export const fetchBookById = createAsyncThunk(
     "books/fetchBookById",
     async (id, { rejectWithValue }) => {
@@ -31,6 +30,7 @@ export const fetchBookById = createAsyncThunk(
     }
 );
 
+// Fetch books by a specific author
 export const fetchBooksByAuthor = createAsyncThunk(
     "books/fetchBooksByAuthor",
     async (authorId, { rejectWithValue }) => {
@@ -45,6 +45,7 @@ export const fetchBooksByAuthor = createAsyncThunk(
     }
 );
 
+// Add a new book
 export const addBook = createAsyncThunk(
     "books/addBook",
     async (book, { rejectWithValue }) => {
@@ -57,6 +58,7 @@ export const addBook = createAsyncThunk(
     }
 );
 
+// Update an existing book
 export const updateBook = createAsyncThunk(
     "books/updateBook",
     async (book, { rejectWithValue }) => {
@@ -69,6 +71,7 @@ export const updateBook = createAsyncThunk(
     }
 );
 
+// Delete a book
 export const deleteBook = createAsyncThunk(
     "books/deleteBook",
     async (id, { rejectWithValue }) => {
@@ -81,6 +84,7 @@ export const deleteBook = createAsyncThunk(
     }
 );
 
+// Fetch owned books
 export const fetchOwnedBooks = createAsyncThunk(
     "books/fetchOwnedBooks",
     async (_, { rejectWithValue }) => {
@@ -95,6 +99,7 @@ export const fetchOwnedBooks = createAsyncThunk(
     }
 );
 
+// Access purchased or rented book content
 export const fetchPurchasedBookContent = createAsyncThunk(
     "books/fetchPurchasedBookContent",
     async (data, { rejectWithValue }) => {
@@ -104,20 +109,6 @@ export const fetchPurchasedBookContent = createAsyncThunk(
         } catch (error) {
             return rejectWithValue(
                 error.response?.data || "Error accessing purchased book content"
-            );
-        }
-    }
-);
-
-export const fetchRentedBookContent = createAsyncThunk(
-    "books/fetchRentedBookContent",
-    async (data, { rejectWithValue }) => {
-        try {
-            const response = await axiosInstance.post("/book/access/rented", data);
-            return response.data;
-        } catch (error) {
-            return rejectWithValue(
-                error.response?.data || "Error accessing rented book content"
             );
         }
     }

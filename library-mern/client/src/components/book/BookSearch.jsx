@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { getAllBooks } from "@/api/bookApi";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchBooks } from "@/features/books/bookThunks";
 import {
     Pagination,
     PaginationContent,
@@ -11,39 +12,36 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import debounce from "lodash.debounce";
 
 export default function BookSearch() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [books, setBooks] = useState([]); 
-    const [currentPage, setCurrentPage] = useState(1); 
-    const [totalPages, setTotalPages] = useState(1); 
-    const itemsPerPage = 5; 
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm); 
+    const dispatch = useDispatch();
+    const { items: books, currentPage, totalPages, loading, error } = useSelector(
+        (state) => state.books
+    );
+
+    const itemsPerPage = 5;
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+        debounceSearch(e.target.value);
+    };
+
+    const debounceSearch = useCallback(
+        debounce((value) => {
+            setDebouncedSearchTerm(value);
+        }, 300), [] 
+    );
 
     useEffect(() => {
-        const fetchBooks = async () => {
-            try {
-                const fetchedData = await getAllBooks(currentPage, itemsPerPage, searchTerm); 
-                console.log("Fetched Data: ", fetchedData);
-
-                if (fetchedData.books) {
-                    setBooks(fetchedData.books); 
-                    setTotalPages(fetchedData.totalPages); 
-                } else {
-                    console.error("Error: Fetched data does not contain valid 'books' array");
-                    setBooks([]);
-                }
-            } catch (error) {
-                console.error("Error fetching books:", error);
-                setBooks([]);
-            }
-        };
-
-        fetchBooks(); 
-    }, [currentPage, searchTerm]); 
+        dispatch(fetchBooks({ page: currentPage, limit: itemsPerPage, searchTerm: debouncedSearchTerm }));
+    }, [dispatch, currentPage, debouncedSearchTerm]);
 
     const handlePageChange = (page) => {
-        setCurrentPage(page);
-        window.scrollTo({ top: 0, behavior: "smooth" }); 
+        dispatch(fetchBooks({ page, limit: itemsPerPage, searchTerm: debouncedSearchTerm }));
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const paginationItems = [];
@@ -71,10 +69,14 @@ export default function BookSearch() {
                     type="search"
                     placeholder="Search for books..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     className="w-full rounded-lg bg-background pl-8 pr-4 py-2 text-sm"
                 />
             </div>
+
+            {loading && <p>Loading...</p>}
+            {error && <p>Error: {error}</p>}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {books.map((book) => (
                     <Link
@@ -112,7 +114,6 @@ export default function BookSearch() {
                 ))}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
                 <div className="mt-8 flex justify-center">
                     <Pagination>

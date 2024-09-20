@@ -1,8 +1,6 @@
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 import { BASE_URL } from '@/utils/constants';
-import {jwtDecode} from 'jwt-decode';
-
-
 
 const isTokenExpired = (token) => {
     try {
@@ -17,7 +15,6 @@ const axiosInstance = axios.create({
     baseURL: BASE_URL,
 });
 
-// Request Interceptor
 axiosInstance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('authToken');
@@ -30,12 +27,9 @@ axiosInstance.interceptors.request.use(
         }
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
-// Response Interceptor
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {

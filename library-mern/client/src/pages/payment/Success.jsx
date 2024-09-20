@@ -1,64 +1,54 @@
-// src/pages/Success.jsx
+// src/pages/Success.jsx 
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { confirmPayment } from '@/api/paymentApi'; // Adjust the path as necessary
+import { useDispatch, useSelector } from 'react-redux';
+import { confirmPayment } from '@/features/payments/paymentThunks'; 
+import { Loader } from 'react-feather'; 
 
 const Success = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+
+    const { paymentStatus, loading, error } = useSelector((state) => state.payments);
+
     const [message, setMessage] = useState('Processing your payment...');
-    const [error, setError] = useState(null);
 
     useEffect(() => {
         const query = new URLSearchParams(location.search);
         const sessionId = query.get('session_id');
 
         if (sessionId) {
-            const processPayment = async () => {
-                try {
-                    const data = await confirmPayment(sessionId);
-
-                    if (data.success) {
-                        setMessage('Payment successful! Thank you for your purchase.');
-                    } else {
-                        setError('Payment confirmation failed. Please contact support.');
-                    }
-                } catch (err) {
-                    // The error message is handled by axios interceptors and confirmPayment
-                    if (err.message === 'Token expired') {
-                        setError('Your session has expired. Please log in again.');
-                        navigate('/login');
-                    } else {
-                        setError('An error occurred while confirming your payment.');
-                    }
-                }
-            };
-
-            processPayment();
+            dispatch(confirmPayment(sessionId));
         } else {
-            setError('No session ID found.');
+            setMessage('No session ID found.');
         }
-    }, [location, navigate]);
+    }, [dispatch, location]);
 
-    if (error) {
-        return (
-            <div className="max-w-md mx-auto p-6 bg-background rounded-lg shadow-lg">
-                <h1 className="text-2xl font-bold mb-4">Error</h1>
-                <p className="text-red-500">Error: {error}</p>
-                <Button className="mt-4" onClick={() => navigate('/')}>
-                    Go to Home
-                </Button>
-            </div>
-        );
-    }
+    useEffect(() => {
+        if (paymentStatus === 'success') {
+            setMessage('Payment successful! Thank you for your purchase.');
+        } else if (error) {
+            setMessage('Payment confirmation failed. Please contact support.');
+        }
+    }, [paymentStatus, error]);
 
     return (
         <div className="max-w-md mx-auto p-6 bg-background rounded-lg shadow-lg">
             <h1 className="text-2xl font-bold mb-4">Success</h1>
-            <p>{message}</p>
-            <Button className="mt-4" onClick={() => navigate('/')}>
-                Go to Home
+            <p>{error ? <span className="text-red-500">{error}</span> : message}</p>
+
+            <Button
+                className="mt-4"
+                onClick={() => navigate('/')}
+                disabled={loading} 
+            >
+                {loading ? (
+                    <Loader className="animate-spin" /> 
+                ) : (
+                    'Go to Home'
+                )}
             </Button>
         </div>
     );

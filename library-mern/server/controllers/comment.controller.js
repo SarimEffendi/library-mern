@@ -19,6 +19,10 @@ exports.createComment = asyncHandler(async (req, res) => {
         });
         await newComment.save();
 
+        await Book.findByIdAndUpdate(req.params.bookId, {
+            $push: { comments: newComment._id }
+        });
+
         const populatedComment = await Comment.findById(newComment._id)
             .populate("author", "username avatar")
             .populate("book", "title");
@@ -28,6 +32,7 @@ exports.createComment = asyncHandler(async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 
 exports.getCommentById = asyncHandler(async (req, res) => {
@@ -94,6 +99,11 @@ exports.deleteCommentById = asyncHandler(async (req, res) => {
         }
 
         if (req.user.role.includes('admin') || comment.author.toString() === req.user._id.toString()) {
+            // Remove the comment from the book's comments array
+            await Book.findByIdAndUpdate(comment.book, {
+                $pull: { comments: comment._id }
+            });
+
             await Comment.findByIdAndDelete(req.params.commentId);
             res.json({ message: "Comment deleted successfully" });
         } else {
@@ -103,6 +113,7 @@ exports.deleteCommentById = asyncHandler(async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 exports.getCommentsByBookId = asyncHandler(async (req, res) => {
     try {

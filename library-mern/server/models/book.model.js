@@ -66,7 +66,14 @@ const BookSchema = new Schema({
                 type: String
             }
         }
+    ],
+    comments: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: 'Comment'
+        }
     ]
+
 }, {
     timestamps: true
 });

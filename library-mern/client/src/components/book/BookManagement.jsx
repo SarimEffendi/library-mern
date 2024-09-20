@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { jwtDecode } from "jwt-decode"; 
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
@@ -8,98 +8,120 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { getBooksByAuthor, createBook, updateBookById, deleteBook } from "@/api/bookApi";
+import { fetchBooksByAuthor, addBook, updateBook, deleteBook } from "@/features/books/bookThunks";
+import { logout } from "@/features/auth/authSlice";
 
 export default function BookManagement() {
-    const [books, setBooks] = useState([]);
+    const dispatch = useDispatch();
+
+    // Selectors to access state
+    const books = useSelector((state) => state.books.items);
+    const loading = useSelector((state) => state.books.loading);
+    const error = useSelector((state) => state.books.error);
+    const user = useSelector((state) => state.auth.user);
+    const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+
+    // Local state for UI interactions
     const [showModal, setShowModal] = useState(false);
     const [bookToDelete, setBookToDelete] = useState(null);
     const [showBookForm, setShowBookForm] = useState(false);
     const [currentBook, setCurrentBook] = useState(null);
-    const [user, setUser] = useState({ username: "", id: "" });
 
     useEffect(() => {
-        const fetchBooks = async () => {
-            try {
-                const token = localStorage.getItem("authToken");
-                if (token) {
-                    const decodedToken = jwtDecode(token);
-                    setUser({ username: decodedToken.username, id: decodedToken._id });
-                    const data = await getBooksByAuthor(decodedToken._id);
-                    setBooks(data);
-                } else {
-                    console.log("No token found");
-                }
-            } catch (error) {
-                console.error('Failed to fetch books:', error);
-            }
-        };
+        if (isAuthenticated  && user._id) {
 
-        fetchBooks();
-    }, []);
+            console.log("Fetching books for user ID:", user._id);
+            dispatch(fetchBooksByAuthor(user._id));
+        }
+    }, [dispatch, isAuthenticated]);
+
+    // Log the books data whenever it changes
+    useEffect(() => {
+        console.log("Books state updated:", books);
+    }, [books]);
+
+    // Log loading and error states
+    useEffect(() => {
+        if (loading) {
+            console.log("Loading books...");
+        }
+        if (error) {
+            console.error("Error fetching books:", error);
+        }
+    }, [loading, error]);
 
     const handleDeleteBook = (book) => {
         setBookToDelete(book);
         setShowModal(true);
     };
 
-    const confirmDeleteBook = async () => {
+    const confirmDeleteBook = () => {
         if (bookToDelete) {
-            try {
-                await deleteBook(bookToDelete.id);
-                setBooks(books.filter((book) => book.id !== bookToDelete.id));
-                setShowModal(false);
-            } catch (error) {
-                console.error('Failed to delete book:', error);
-            }
+            console.log("Deleting book:", bookToDelete);
+            dispatch(deleteBook(bookToDelete._id));
+            setShowModal(false);
         }
     };
 
     const handleEditBook = (book) => {
+        console.log("Editing book:", book);
         setCurrentBook(book);
         setShowBookForm(true);
     };
 
     const handleAddBook = () => {
+        console.log("Adding new book");
         setCurrentBook(null);
         setShowBookForm(true);
     };
 
-    const saveBook = async (book) => {
-        try {
-            if (book.id) {
-                await updateBookById(book.id, book);
-                setBooks(books.map((b) => (b.id === book.id ? book : b)));
-            } else {
-                const newBook = await createBook(book);
-                setBooks([...books, { ...newBook, id: books.length + 1 }]);
-            }
-            setShowBookForm(false);
-        } catch (error) {
-            console.error('Failed to save book:', error);
+    const saveBook = (bookData) => {
+        console.log("Saving book data:", bookData);
+        if (currentBook) {
+            dispatch(updateBook(bookData));
+        } else {
+            dispatch(addBook(bookData));
         }
+        setShowBookForm(false);
     };
+
+    const handleLogout = () => {
+        console.log("Logging out");
+        dispatch(logout());
+    };
+
+    if (!isAuthenticated) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <p>Please log in to manage your books.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-muted/40 min-h-screen flex flex-col">
             <header className="bg-background border-b px-6 py-4 flex items-center justify-between">
                 <h1 className="text-2xl font-bold">My Publications</h1>
-                <Button onClick={handleAddBook}>Add Book</Button>
+                <div className="flex items-center gap-4">
+                    <Button onClick={handleAddBook}>Add Book</Button>
+                    <Button variant="outline" onClick={handleLogout}>Logout</Button>
+                </div>
             </header>
             <main className="flex-1 p-6 grid gap-6">
-                {books.length === 0 ? (
+                {loading && <p>Loading books...</p>}
+                {error && <p className="text-red-500">Error: {error}</p>}
+                {books.length === 0 && !loading ? (
                     <p>No books available.</p>
                 ) : (
                     books.map((book) => (
-                        <Card key={book.id} className="flex flex-col md:flex-row">
+                        <Card key={book._id} className="flex flex-col md:flex-row">
                             <div className="flex-1">
                                 <CardHeader>
                                     <CardTitle>{book.title}</CardTitle>
-                                    {/* Fix rendering of author object */}
                                     <CardDescription>Author: {book.author.username}</CardDescription>
-                                    <CardDescription>Published: {book.publicationDate}</CardDescription>
-                                    <CardDescription>Price: ${book.price}</CardDescription>
-                                    <CardDescription>Rental Price: ${book.rentalPrice}</CardDescription>
+                                    <CardDescription>Published: {new Date(book.publicationDate).toLocaleDateString()}</CardDescription>
+                                    <CardDescription>Price: ${book.price.toFixed(2)}</CardDescription>
+                                    <CardDescription>Rental Price: ${book.rentalPrice.toFixed(2)}</CardDescription>
                                     <div className="flex items-center gap-2">
                                         {book.availableForPurchase ? (
                                             <div className="flex items-center gap-2">
@@ -153,11 +175,15 @@ export default function BookManagement() {
                     ))
                 )}
             </main>
+
+            {/* Delete Confirmation Modal */}
             <AlertDialog open={showModal} onOpenChange={setShowModal}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Book</AlertDialogTitle>
-                        <AlertDialogDescription>Are you sure you want to delete "{bookToDelete?.title}"?</AlertDialogDescription>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete "{bookToDelete?.title}"?
+                        </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -165,6 +191,8 @@ export default function BookManagement() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Add/Edit Book Dialog */}
             <Dialog open={showBookForm} onOpenChange={setShowBookForm} className="max-h-[90vh] overflow-auto">
                 <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-auto">
                     <DialogHeader>
@@ -176,18 +204,20 @@ export default function BookManagement() {
                     <form
                         onSubmit={(e) => {
                             e.preventDefault();
-                            saveBook({
-                                id: currentBook?.id,
-                                title: e.target.title.value,
-                                author: { username: user.username, _id: user.id }, // Save the author's details
-                                publicationDate: e.target.publicationDate.value,
-                                description: e.target.description.value,
-                                price: parseFloat(e.target.price.value),
-                                rentalPrice: parseFloat(e.target.rentalPrice.value),
-                                availableForPurchase: e.target.availableForPurchase.value === 'yes',
-                                availableForRental: e.target.availableForRental.value === 'yes',
-                                imageUrl: e.target.imageUrl.value,
-                            });
+                            const form = e.target;
+                            const bookData = {
+                                id: currentBook?._id,
+                                title: form.title.value,
+                                author: { username: user.username, _id: user._id }, // Save the author's details
+                                publicationDate: form.publicationDate.value,
+                                description: form.description.value,
+                                price: parseFloat(form.price.value),
+                                rentalPrice: parseFloat(form.rentalPrice.value),
+                                availableForPurchase: form.availableForPurchase.value === 'yes',
+                                availableForRental: form.availableForRental.value === 'yes',
+                                imageUrl: form.imageUrl.value,
+                            };
+                            saveBook(bookData);
                         }}
                         className="grid gap-4 py-4"
                     >
@@ -217,7 +247,7 @@ export default function BookManagement() {
                                 id="publicationDate"
                                 name="publicationDate"
                                 type="date"
-                                defaultValue={currentBook?.publicationDate}
+                                defaultValue={currentBook?.publicationDate ? new Date(currentBook.publicationDate).toISOString().split('T')[0] : ''}
                                 required
                             />
                         </div>
@@ -279,7 +309,7 @@ export default function BookManagement() {
     );
 }
 
-
+// Icon Components (Ensure these are exported correctly)
 function CheckIcon(props) {
     return (
         <svg
@@ -294,10 +324,11 @@ function CheckIcon(props) {
             strokeLinecap="round"
             strokeLinejoin="round"
         >
-            <path d="M20 6 9 17l-5-5" />
+            <path d="M20 6L9 17l-5-5" />
         </svg>
     );
 }
+
 function XIcon(props) {
     return (
         <svg
@@ -312,8 +343,8 @@ function XIcon(props) {
             strokeLinecap="round"
             strokeLinejoin="round"
         >
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
+            <path d="M18 6L6 18" />
+            <path d="M6 6l12 12" />
         </svg>
     );
 }
