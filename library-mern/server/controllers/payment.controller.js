@@ -1,114 +1,128 @@
+
 const asyncHandler = require('express-async-handler');
 const Book = require('../models/book.model');
 const Payment = require('../models/payment.model');
 const User = require('../models/user.model');
 const stripe = require('../config/stripe');
 
-exports.createPaymentIntent = asyncHandler(async (req, res) => {
-    try {
-        const { bookId, type } = req.body;
+exports.createCheckoutSession = asyncHandler(async (req, res) => {
+    const { bookId, type } = req.body;
 
-        const book = await Book.findById(bookId);
-        if (!book) {
-            return res.status(404).json({ message: 'Book not found' });
-        }
-
-        let amount = 0;
-
-        if (type === 'purchase' && book.availableForPurchase) {
-            amount = book.price * 100;
-        } else if (type === 'rental' && book.availableForRental) {
-            amount = book.rentalPrice * 100;
-        } else {
-            return res.status(400).json({ message: 'Book not available for this type of transaction' });
-        }
-
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount,
-            currency: 'usd',
-            payment_method_types: ['card'],
-        });
-
-        res.json({ clientSecret: paymentIntent.client_secret, paymentId: paymentIntent.id });
-    } catch (error) {
-        console.error('Error in createPaymentIntent:', error.message);
-        res.status(500).json({ error: error.message });
+    if (!['purchase', 'rental'].includes(type)) {
+        return res.status(400).json({ message: 'Invalid transaction type.' });
     }
+
+    const book = await Book.findById(bookId);
+    if (!book) {
+        return res.status(404).json({ message: 'Book not found' });
+    }
+
+    let amount = 0;
+    let description = '';
+    if (type === 'purchase' && book.availableForPurchase) {
+        amount = book.price * 100; 
+        description = `Purchase of ${book.title}`;
+    } else if (type === 'rental' && book.availableForRental) {
+        amount = book.rentalPrice * 100; 
+        description = `Rental of ${book.title}`;
+    } else {
+        return res.status(400).json({ message: 'Book not available for this type of transaction' });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+            price_data: {
+                currency: 'usd',
+                product_data: {
+                    name: book.title,
+                    description: description,
+                },
+                unit_amount: amount,
+            },
+            quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_URL}/payment/cancel`,
+        metadata: {
+            bookId,
+            type,
+            userId: req.user._id.toString(),
+        },
+    });
+    console.log(session);
+    console.log(process.env.CLIENT_URL);
+    res.json({ url: session.url });
 });
 
-exports.createPayment = asyncHandler(async (req, res) => {
-    try {
-        const { bookId, stripePaymentId, amount, status, type } = req.body;
+exports.confirmPayment = asyncHandler(async (req, res) => {
+    const { sessionId } = req.body;
 
-        if (!bookId || !stripePaymentId || !amount || !status || !type) {
-            return res.status(400).json({ message: 'Missing required fields' });
-        }
-
-        const book = await Book.findById(bookId);
-        if (!book) {
-            return res.status(404).json({ message: 'Book not found' });
-        }
-
-        const payment = new Payment({
-            book: bookId,
-            user: req.user._id,
-            amount,
-            stripePaymentId,
-            status,
-            type
-        });
-
-        await payment.save();
-
-        const paymentId = payment._id; 
-        console.log('Payment ID:', paymentId);
-
-        if (type === 'purchase') {
-            book.purchasers.push({
-                user: req.user._id,
-                purchaseDate: new Date(),
-                paymentId: paymentId 
-            });
-            await book.save();
-
-            const userUpdateResult = await User.findByIdAndUpdate(req.user._id, {
-                $push: {
-                    ownedBooks: {
-                        book: bookId,
-                        paymentId: paymentId
-                    }
-                }
-            }, { new: true });
-
-            console.log('User Update Result:', userUpdateResult);
-
-        } else if (type === 'rental') {
-            const rentalDuration = 7 * 24 * 60 * 60 * 1000;
-            const rentalEndDate = new Date(Date.now() + rentalDuration);
-            book.renters.push({
-                user: req.user._id,
-                rentalDate: new Date(),
-                rentalEndDate,
-                paymentId: paymentId
-            });
-            await book.save();
-
-            const userUpdateResult = await User.findByIdAndUpdate(req.user._id, {
-                $push: {
-                    rentedBooks: {
-                        book: bookId,
-                        paymentId: paymentId, 
-                        rentalEndDate: rentalEndDate
-                    }
-                }
-            }, { new: true });
-
-            console.log('User Update Result:', userUpdateResult);
-        }
-
-        res.status(201).json(payment);
-    } catch (error) {
-        console.error('Error in createPayment:', error.message);
-        res.status(500).json({ error: error.message });
+    if (!sessionId) {
+        return res.status(400).json({ message: 'Session ID is required.' });
     }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status !== 'paid') {
+        return res.status(400).json({ message: 'Payment not completed.' });
+    }
+
+    const { bookId, type, userId } = session.metadata;
+
+    const existingPayment = await Payment.findOne({ stripePaymentId: session.payment_intent });
+
+    if (existingPayment) {
+        return res.json({ success: true, message: 'Payment already processed.' });
+    }
+
+    const payment = new Payment({
+        book: bookId,
+        user: userId,
+        amount: session.amount_total / 100, 
+        stripePaymentId: session.payment_intent,
+        status: 'succeeded',
+        type: type,
+    });
+
+    await payment.save();
+
+    const book = await Book.findById(bookId);
+    const user = await User.findById(userId);
+
+    if (type === 'purchase') {
+        book.purchasers.push({
+            user: userId,
+            purchaseDate: new Date(),
+            paymentId: payment._id,
+        });
+        await book.save();
+
+        user.ownedBooks.push({
+            book: bookId,
+            paymentId: payment._id,
+        });
+        await user.save();
+    } else if (type === 'rental') {
+        const rentalDuration = 7 * 24 * 60 * 60 * 1000; 
+        const rentalEndDate = new Date(Date.now() + rentalDuration);
+
+        book.renters.push({
+            user: userId,
+            rentalDate: new Date(),
+            rentalEndDate,
+            paymentId: payment._id,
+        });
+        await book.save();
+
+        user.rentedBooks.push({
+            book: bookId,
+            paymentId: payment._id,
+            rentalEndDate: rentalEndDate,
+        });
+        await user.save();
+    }
+
+    res.json({ success: true, message: 'Payment confirmed and records updated.' });
 });

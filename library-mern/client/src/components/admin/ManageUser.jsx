@@ -6,13 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"; // Popover from shadcn UI
-import { Checkbox } from "@/components/ui/checkbox"; // Checkbox for multi-select
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"; 
+import { Checkbox } from "@/components/ui/checkbox"; 
 import { fetchUsers, fetchUserById, createUser, updateUser, deleteUser } from "@/api/adminApi";
 
-const roleOptions = ["admin", "author", "reader"]; // Role options
+const roleOptions = ["admin", "author", "reader"];
 
-// Random password generator function
 const generateRandomPassword = (length = 12) => {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
     let password = "";
@@ -59,8 +58,8 @@ export default function UserManagement() {
         try {
             const createdUser = await createUser({
                 ...newUser,
-                role: newUser.role, // Ensure role is passed as array
-                password: newUser.password, // Ensure the password is sent to the backend
+                role: newUser.role,
+                password: newUser.password, 
             });
             setUsers([...users, createdUser]);
             setNewUser(null);
@@ -74,7 +73,7 @@ export default function UserManagement() {
         try {
             const updatedUser = await updateUser(editingUser._id, {
                 ...editingUser,
-                role: editingUser.role, // Ensure role is passed as array
+                role: editingUser.role, 
             });
             setUsers(users.map((user) => (user._id === updatedUser._id ? updatedUser : user)));
             setEditingUser(null);
@@ -102,12 +101,12 @@ export default function UserManagement() {
     };
 
     const openAddUserModal = () => {
-        // Generate a random password when the modal opens
+
         const randomPassword = generateRandomPassword();
         setNewUser({
             username: "",
             email: "",
-            password: randomPassword, // Set the generated password
+            password: randomPassword,
             role: [],
         });
     };
@@ -174,7 +173,6 @@ export default function UserManagement() {
                 )}
             </div>
 
-            {/* Edit User Sheet */}
             {editingUser && (
                 <Sheet>
                     <SheetTrigger asChild>
@@ -200,7 +198,6 @@ export default function UserManagement() {
                                         />
                                     </div>
 
-                                    {/* Multi-select combo box for roles */}
                                     <div className="space-y-2">
                                         <Label>Roles</Label>
                                         <Popover>
@@ -237,7 +234,6 @@ export default function UserManagement() {
                 </Sheet>
             )}
 
-            {/* Add User Sheet */}
             {newUser && (
                 <Sheet>
                     <SheetTrigger asChild>
@@ -268,12 +264,11 @@ export default function UserManagement() {
                                         <Input
                                             id="password"
                                             type="text"
-                                            value={newUser.password} // Show the generated password
+                                            value={newUser.password} 
                                             readOnly
                                         />
                                     </div>
 
-                                    {/* Multi-select combo box for roles */}
                                     <div className="space-y-2">
                                         <Label>Roles</Label>
                                         <Popover>

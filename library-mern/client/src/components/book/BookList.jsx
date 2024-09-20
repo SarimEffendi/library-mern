@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getOwnedBooks } from '@/api/bookApi'; 
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchOwnedBooks } from '@/features/books/bookThunks'; 
 
 const BookIcon = (props) => (
     <svg
@@ -21,28 +22,27 @@ const BookIcon = (props) => (
 );
 
 const BookList = () => {
-    const [books, setBooks] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const dispatch = useDispatch();
+    const { ownedBooks, loading, error } = useSelector((state) => state.books); 
 
     useEffect(() => {
-        const fetchBooks = async () => {
-            try {
-                const { purchasedBooks, rentedBooks } = await getOwnedBooks();
+        dispatch(fetchOwnedBooks()); 
+    }, [dispatch]);
 
-                const allBooks = [...purchasedBooks, ...rentedBooks];
-                setBooks(allBooks);
-            } catch (error) {
-                setError("Failed to fetch owned books.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchBooks();
-    }, []);
+    console.log('Owned Books from Redux:', ownedBooks);
+    console.log('Loading state:', loading);
+    console.log('Error state:', error);
 
     if (loading) return <p>Loading...</p>;
     if (error) return <p>{error}</p>;
+
+    // Combine purchased and rented books
+    const books = [...(ownedBooks.purchasedBooks || []), ...(ownedBooks.rentedBooks || [])].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    // Log the combined and sorted book list
+    console.log('Combined and sorted book list:', books);
 
     return (
         <div className="grid gap-6 p-6 md:p-12">
@@ -52,9 +52,9 @@ const BookList = () => {
             </div>
             <div className="grid gap-4">
                 {books.map((book, index) => (
-                    <a key={index} href="#" className="no-underline">
-                        <Card>
-                            <CardContent className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+                    <a key={index} href="#" className="no-underline ">
+                        <Card className="pt-9 pl-5 pr-5 pb-5 items-center align-middle">
+                            <CardContent className="grid grid-cols-[auto_1fr_auto] items-center justify-center gap-4">
                                 <div className="flex items-center justify-center w-12 h-12 bg-primary text-primary-foreground rounded-full">
                                     <BookIcon className="w-6 h-6" />
                                 </div>

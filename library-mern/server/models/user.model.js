@@ -24,11 +24,11 @@ const userSchema = new mongoose.Schema({
     },
     ownedBooks: [{
         book: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
-        paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' }  // Changed to ObjectId
+        paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' }  
     }],
     rentedBooks: [{
         book: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
-        paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },  // Changed to ObjectId
+        paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },  
         rentalEndDate: { type: Date }
     }]
 }, {

@@ -51,8 +51,9 @@ exports.register = asyncHandler(async (req, res) => {
         });
 
         await newUser.save();
+        const token = jwt.sign({ _id: newUser._id, role: newUser.role }, process.env.JWTSECRET, { expiresIn: '1h' });
 
-        res.status(201).json({ message: "User registered successfully" });
+        res.status(201).json({ message: "User registered successfully", token });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: error.message });
@@ -84,9 +85,27 @@ exports.login = asyncHandler(async (req, res) => {
 
         const token = jwt.sign({ _id: user._id, role: user.role }, process.env.JWTSECRET, { expiresIn: '1h' });
 
-        res.json({ token });
+        res.json({token});
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: error.message });
     }
 });
+
+exports.getCurrentUser = asyncHandler(async (req, res) => {
+    
+    if (req.user) {
+        res.status(200).json({
+            id: req.user._id,
+            username: req.user.username,
+            email: req.user.email,
+            roles: req.user.role,
+            ownedBooks: req.user.ownedBooks,
+            rentedBooks: req.user.rentedBooks,
+        });
+    } else {
+        res.status(404).json({ message: 'User not found' });
+    }
+});
+
+

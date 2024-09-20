@@ -12,13 +12,11 @@ export default function UserProfile() {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     const handleSaveProfile = () => {
-        // Implement save profile logic here
         console.log('Profile saved:', { username, email });
     };
 
     const handleChangePassword = () => {
         if (newPassword === confirmPassword) {
-            // Implement password change logic here
             console.log('Password changed');
         } else {
             console.error('Passwords do not match');

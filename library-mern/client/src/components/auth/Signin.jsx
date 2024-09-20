@@ -1,28 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginUser } from '@/api/authApi';
-import {jwtDecode} from 'jwt-decode'; 
+import { useDispatch, useSelector } from 'react-redux';
+import  { loginUser } from '@/features/auth/authThunks';
 
 export default function Signin() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState({});
+    
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
-    useEffect(() => {
-        const token = localStorage.getItem('authToken');
-        if (token) {
-            try {
-                const decodedToken = jwtDecode(token);
-                const currentTime = Date.now() / 1000; 
-                if (decodedToken.exp > currentTime) {
-                    navigate('/', { replace: true }); 
-                }
-            } catch (error) {
-                console.error('Failed to decode token:', error);
-            }
-        }
-    }, [navigate]);
+    const { isAuthenticated, error } = useSelector((state) => state.auth);
+
+    if (isAuthenticated) {
+        navigate('/', { replace: true });
+    }
 
     const validateInputs = () => {
         const validationErrors = {};
@@ -37,7 +30,7 @@ export default function Signin() {
         return validationErrors;
     };
 
-    const handleSignin = async (e) => {
+    const handleSignin = (e) => {
         e.preventDefault();
         const validationErrors = validateInputs();
 
@@ -46,27 +39,8 @@ export default function Signin() {
             return;
         }
 
-        try {
-            const userData = { username, password };
-            const response = await loginUser(userData);
-
-            const { token } = response.data;
-
-            localStorage.setItem('authToken', token);
-            console.log('Token stored:', token);
-            localStorage.setItem('roles', JSON.stringify(response.data.roles));
-            console.log('User roles stored:', response.data.roles);
-            window.dispatchEvent(new Event('authChange'));
-
-            navigate('/', { replace: true }); // Ensure the page redirects after login
-        } catch (error) {
-            console.error('Error during login:', error);
-            if (error.response && error.response.data) {
-                setErrors({ api: error.response.data.message || 'Something went wrong' });
-            } else {
-                setErrors({ api: 'Something went wrong' });
-            }
-        }
+        const userData = { username, password };
+        dispatch(loginUser(userData));
     };
 
     return (
@@ -106,7 +80,7 @@ export default function Signin() {
                                 />
                                 {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
                             </div>
-                            {errors.api && <p className="text-red-500">{errors.api}</p>}
+                            {error && <p className="text-red-500">{error}</p>}
                             <button
                                 type="submit"
                                 className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
